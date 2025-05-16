@@ -13,6 +13,7 @@ Python과 SimPy를 사용한 아파트 주차장 내 전기차 충전 시뮬레�
 - 확률적 도착 시간, 주차 시간, 배터리 잔량 및 충전 시간
 - 이벤트 로깅 및 분석
 - 주차장 상태 시각화
+- 주차장 상태 애니메이션 생성 및 저장
 
 ## 설치 방법
 
@@ -48,11 +49,34 @@ python main.py --seed 42 --time 86400 --normal 25 --ev 5 --visualize --save-csv
 - `--save-csv`: 결과를 CSV 파일로 저장
 - `--output-prefix`: 출력 파일 이름 접두사
 
+### 애니메이션 생성
+
+시뮬레이션 실행 후 생성된 로그 파일로 주차장 상태의 애니메이션을 생성할 수 있습니다:
+
+```bash
+python parking_animation.py results_sim_YYYYMMDD_HHMMSS/simulation_log.csv
+```
+
+사용자 정의 매개변수로 애니메이션 생성:
+
+```bash
+python parking_animation.py results_sim_YYYYMMDD_HHMMSS/simulation_log.csv custom_animation.mp4 --fps 15 --dpi 150 --speed 120
+```
+
+#### 애니메이션 옵션
+
+- `log_file`: 시뮬레이션 로그 CSV 파일 경로 (필수)
+- `output_file`: 저장할 애니메이션 파일 경로 (기본값: parking_animation.mp4)
+- `--fps`: 애니메이션 프레임 속도 (기본값: 10)
+- `--dpi`: 이미지 해상도 (기본값: 100)
+- `--speed`: 시뮬레이션 속도 (실제 1초당 시뮬레이션 시간 초, 기본값: 60.0)
+
 ## 프로젝트 구조
 
 ```
 .
 ├── main.py                 # 메인 실행 파일
+├── parking_animation.py    # 주차장 애니메이션 생성 도구
 ├── requirements.txt        # 의존성 목록
 └── src/                    # 소스코드 디렉토리
     ├── config.py           # 설정 상수
@@ -86,6 +110,7 @@ python main.py --seed 42 --time 86400 --normal 25 --ev 5 --visualize --save-csv
 - 시간대별 차량 도착 그래프 (`arrivals_by_hour.png`)
 - 차량 유형별 주차 시간 분포 그래프 (`parking_duration.png`)
 - 주차장 상태 스냅샷 이미지 (시작, 중간, 종료 시점)
+- 주차장 상태 변화 애니메이션 비디오 (parking_animation.mp4)
 
 ## 최근 업데이트 내용
 
@@ -112,6 +137,12 @@ python main.py --seed 42 --time 86400 --normal 25 --ev 5 --visualize --save-csv
 - 차량 이동 패턴, 주차 시간, 충전소 이용 현황 등 분석
 - 데이터 시각화를 통한 인사이트 도출
 
+### 6. 주차장 상태 애니메이션 기능
+- 시뮬레이션 로그를 기반으로 주차장 상태 변화를 애니메이션으로 시각화
+- 시간에 따른 차량 이동, 주차, 충전 상태를 동적으로 표현
+- 애니메이션 속도, 해상도 등 사용자 정의 가능
+- MP4 비디오 형식으로 결과 저장 및 공유 가능
+
 ## 사용 방법
 
 ```bash
@@ -126,10 +157,14 @@ python main.py --visualize --save-csv
 
 # 실행 시간 설정 (초 단위)
 python main.py --time 7200  # 2시간 시뮬레이션
+
+# 애니메이션 생성 (시뮬레이션 후)
+python parking_animation.py results_sim_YYYYMMDD_HHMMSS/simulation_log.csv
 ```
 
 ## 분석 방법
 
 1. 시뮬레이션 실행 후 생성된 CSV 파일 확인
 2. Jupyter Notebook 실행: `jupyter notebook simulation_analysis.ipynb`
-3. 생성된 그래프 및 시각화 자료 분석 
+3. 생성된 그래프 및 시각화 자료 분석
+4. 애니메이션 결과물로 시간에 따른 주차장 상태 변화 확인 # SME_Capstone_Team4
