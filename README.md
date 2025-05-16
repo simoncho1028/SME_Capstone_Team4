@@ -168,3 +168,5 @@ python parking_animation.py results_sim_YYYYMMDD_HHMMSS/simulation_log.csv
 2. Jupyter Notebook 실행: `jupyter notebook simulation_analysis.ipynb`
 3. 생성된 그래프 및 시각화 자료 분석
 4. 애니메이션 결과물로 시간에 따른 주차장 상태 변화 확인 # SME_Capstone_Team4
+
+# commit test

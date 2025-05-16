@@ -232,7 +232,7 @@ def main():
         
         # 차량 유형 분포
         vehicle_counts = df.drop_duplicates("id").groupby("type").size()
-        f.write("차량 유형 분포:\n")
+        f.write("차량 유형 분포: \n")
         for vtype, count in vehicle_counts.items():
             f.write(f"- {vtype}: {count}대\n")
         f.write("\n")
