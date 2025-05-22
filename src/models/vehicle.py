@@ -345,7 +345,7 @@ class Vehicle:
         target_battery = 100.0  # 목표 충전량
         
         # 충전 속도: 5분(300초)에 1% 충전
-        charge_rate = 1.0 / 300  # %/초
+        charge_rate = 0.162 / 60 # %/초
         
         # 필요한 총 충전 시간 계산
         total_charge_needed = target_battery - initial_battery

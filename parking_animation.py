@@ -17,12 +17,19 @@ import matplotlib.animation as animation
 import matplotlib.colors as mcolors
 from matplotlib.patches import Patch
 from typing import List, Dict, Any, Tuple, Optional
+import platform
 
 from src.config import PARKING_MAP
 from src.utils.visualizer import ParkingVisualizer
 
 # 한글 폰트 설정
-plt.rcParams['font.family'] = 'AppleGothic'  # 맥OS 한글 폰트
+if platform.system() == 'Windows':
+    plt.rcParams['font.family'] = 'Malgun Gothic'  # 윈도우 한글 폰트
+elif platform.system() == 'Darwin':  # macOS
+    plt.rcParams['font.family'] = 'AppleGothic'    # 맥OS 한글 폰트
+else:  # Linux
+    plt.rcParams['font.family'] = 'NanumGothic'    # 리눅스 한글 폰트
+
 plt.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 
 
@@ -93,60 +100,18 @@ def prepare_animation_data(log_file: str, speed_factor: float = 60.0) -> List[Di
     # 시간 기준 정렬
     df = df.sort_values('time')
     
-    # 충전 로그 파일 확인 및 읽기
-    charge_df = None
-    charge_log_file = log_file.replace("simulation_log", "charge_log")
-    if os.path.exists(charge_log_file):
-        charge_df = pd.read_csv(charge_log_file)
-        charge_df = charge_df.sort_values('time')
-    
-    # 전기차 ID별 충전 상태 추적을 위한 사전 데이터 구조
-    charging_evs = {}  # {ev_id: {'start_time': 시작시간, 'start_battery': 시작배터리, 'end_time': 종료시간, 'end_battery': 종료배터리}}
-    
-    # 충전 데이터 처리 - 각 전기차별 충전 이벤트 추적
-    if charge_df is not None:
-        for _, row in df.iterrows():
-            if row['type'] == 'ev':
-                ev_id = row['id']
-                event = row['event']
-                time = row['time']
-                battery = row['battery']
-                
-                if event == 'charge_start':
-                    if ev_id not in charging_evs:
-                        charging_evs[ev_id] = {}
-                    charging_evs[ev_id]['start_time'] = time
-                    charging_evs[ev_id]['start_battery'] = battery
-                    charging_evs[ev_id]['current_battery'] = battery
-                
-                elif event == 'charge_update':
-                    if ev_id in charging_evs:
-                        # update 이벤트는 여러번 발생할 수 있어 마지막 상태를 저장
-                        charging_evs[ev_id]['end_time'] = time
-                        charging_evs[ev_id]['end_battery'] = battery
-                        charging_evs[ev_id]['current_battery'] = battery
-                
-                elif event == 'charge_end':
-                    if ev_id in charging_evs:
-                        charging_evs[ev_id]['end_time'] = time
-                        charging_evs[ev_id]['end_battery'] = battery
-                        charging_evs[ev_id]['current_battery'] = battery
-                
-                elif event == 'depart':
-                    # 차량이 떠나면 충전 상태 제거
-                    if ev_id in charging_evs:
-                        del charging_evs[ev_id]
-    
     # 주차장 상태 변화 추적을 위한 데이터 구조
     frames = []
     
     # 현재 점유된 주차면 및 충전소 추적
     occupied_spots = set()
     charging_spots = set()
+    moving_spots = set()  # 이동 중인 도로 셀 추적
     
     # 차량 ID별 위치 추적
     vehicle_positions = {}
     vehicle_types = {}
+    vehicle_states = {}  # 차량 상태 추적 (moving, parked, charging)
     
     # 이전 프레임 시간
     prev_time = 0.0
@@ -162,6 +127,9 @@ def prepare_animation_data(log_file: str, speed_factor: float = 60.0) -> List[Di
     while current_time <= max_time:
         # 현재 시간까지의 이벤트 필터링
         events_until_now = df[df.time <= current_time]
+        
+        # 이전 프레임의 이동 중인 셀 초기화
+        moving_spots.clear()
         
         # 마지막 이벤트까지 처리
         for _, row in events_until_now.iterrows():
@@ -182,13 +150,16 @@ def prepare_animation_data(log_file: str, speed_factor: float = 60.0) -> List[Di
                 cell_type = PARKING_MAP[pos[0]][pos[1]]
                 if cell_type == 'P':
                     occupied_spots.add(pos)
+                    vehicle_states[vehicle_id] = 'parked'
                 elif cell_type == 'C':
                     charging_spots.add(pos)
+                    vehicle_states[vehicle_id] = 'charging'
             
             elif event == 'charge_start':
                 if pos in occupied_spots:
                     occupied_spots.remove(pos)
                 charging_spots.add(pos)
+                vehicle_states[vehicle_id] = 'charging'
             
             elif event == 'depart':
                 if pos in occupied_spots:
@@ -199,62 +170,28 @@ def prepare_animation_data(log_file: str, speed_factor: float = 60.0) -> List[Di
                     del vehicle_positions[vehicle_id]
                 if vehicle_id in vehicle_types:
                     del vehicle_types[vehicle_id]
-                
-        # 배터리 상태 계산 - 선형 보간
-        battery_statuses = {}
-        for v_id, v_type in vehicle_types.items():
-            if v_type == 'ev':
-                # 현재 충전 중인 전기차의 배터리 상태 계산
-                if v_id in charging_evs:
-                    ev_data = charging_evs[v_id]
-                    
-                    # 시작 및 종료 시간/배터리가 있으면 선형 보간
-                    if 'start_time' in ev_data and 'start_battery' in ev_data:
-                        start_time = ev_data['start_time']
-                        start_battery = ev_data['start_battery']
-                        
-                        # 종료 시간/배터리가 있으면 사용, 없으면 마지막 업데이트 값 사용
-                        if 'end_time' in ev_data and 'end_battery' in ev_data:
-                            end_time = ev_data['end_time']
-                            end_battery = ev_data['end_battery']
-                        else:
-                            # 아직 업데이트가 없으면 시작 값 사용
-                            end_time = start_time
-                            end_battery = start_battery
-                        
-                        # 현재 시간이 시작과 종료 사이에 있으면 선형 보간
-                        if start_time <= current_time <= end_time:
-                            if end_time > start_time:  # 분모가 0이 되지 않도록
-                                # 선형 보간 공식: 배터리 = 시작배터리 + (현재시간-시작시간)/(종료시간-시작시간) * (종료배터리-시작배터리)
-                                battery_value = start_battery + (current_time - start_time) / (end_time - start_time) * (end_battery - start_battery)
-                                battery_statuses[v_id] = battery_value
-                            else:
-                                battery_statuses[v_id] = start_battery
-                        elif current_time > end_time:
-                            # 마지막 업데이트 이후는 마지막 값 유지
-                            battery_statuses[v_id] = end_battery
-                        else:
-                            # 충전 시작 전에는 시작 배터리 값 사용
-                            battery_statuses[v_id] = start_battery
-                    
-                else:
-                    # 충전 중이 아닌 전기차는 마지막 알려진 배터리 값 찾기
-                    last_battery = None
-                    for _, row in events_until_now.iterrows():
-                        if row['id'] == v_id and row['type'] == 'ev' and pd.notna(row['battery']):
-                            last_battery = row['battery']
-                    
-                    if last_battery is not None:
-                        battery_statuses[v_id] = last_battery
+                if vehicle_id in vehicle_states:
+                    del vehicle_states[vehicle_id]
+            
+            # 차량이 도로 위에 있고 주차/충전 중이 아닌 경우
+            if PARKING_MAP[pos[0]][pos[1]] == 'R' and vehicle_id not in vehicle_states:
+                vehicle_states[vehicle_id] = 'moving'
+        
+        # 현재 프레임의 차량 상태에 따라 셀 표시
+        for vehicle_id, pos in vehicle_positions.items():
+            if vehicle_id in vehicle_states:
+                state = vehicle_states[vehicle_id]
+                if state == 'moving' and PARKING_MAP[pos[0]][pos[1]] == 'R':
+                    moving_spots.add(pos)
         
         # 프레임 추가
         frames.append({
             'time': current_time,
             'occupied': list(occupied_spots),
             'charging': list(charging_spots),
+            'moving': list(moving_spots),
             'vehicles': vehicle_positions.copy(),
-            'vehicle_types': vehicle_types.copy(),
-            'battery_status': battery_statuses.copy()
+            'vehicle_types': vehicle_types.copy()
         })
         
         # 다음 시간 프레임으로 이동
@@ -282,11 +219,11 @@ def animate_parking(frames: List[Dict[str, Any]], output_file: str, fps: int = 1
     visualizer = ParkingVisualizer()
     
     # 그래프 설정
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 7))
+    fig, ax1 = plt.subplots(figsize=(10, 8))
     
     # 색상 매핑
-    cmap = mcolors.ListedColormap([visualizer.CELL_COLORS[c] for c in 'NERPCOCU'])
-    bounds = range(len('NERPCOCU') + 1)
+    cmap = mcolors.ListedColormap([visualizer.CELL_COLORS[c] for c in 'NERPCOCUM'])
+    bounds = range(len('NERPCOCUM') + 1)
     norm = mcolors.BoundaryNorm(bounds, cmap.N)
     
     # 주차장 그리드 초기화
@@ -318,12 +255,6 @@ def animate_parking(frames: List[Dict[str, Any]], output_file: str, fps: int = 1
     # 시간 표시 텍스트
     title = ax1.set_title("주차장 상태 (시간: 0:00)")
     
-    # 배터리 차트 초기화
-    ax2.set_xlabel('배터리 잔량 (%)')
-    ax2.set_ylabel('전기차 ID')
-    ax2.set_title('전기차 배터리 상태')
-    ax2.set_xlim(0, 100)
-    
     # 범례 추가
     legend_elements = [
         Patch(facecolor=visualizer.CELL_COLORS['N'], label='경계/미사용'),
@@ -332,7 +263,8 @@ def animate_parking(frames: List[Dict[str, Any]], output_file: str, fps: int = 1
         Patch(facecolor=visualizer.CELL_COLORS['P'], label='일반 주차면'),
         Patch(facecolor=visualizer.CELL_COLORS['C'], label='EV 충전소'),
         Patch(facecolor=visualizer.CELL_COLORS['O'], label='점유된 주차면'),
-        Patch(facecolor=visualizer.CELL_COLORS['U'], label='사용 중인 충전소')
+        Patch(facecolor=visualizer.CELL_COLORS['U'], label='사용 중인 충전소'),
+        Patch(facecolor=visualizer.CELL_COLORS['M'], label='이동 중인 도로')
     ]
     ax1.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05),
              ncol=4, frameon=True)
@@ -366,9 +298,14 @@ def animate_parking(frames: List[Dict[str, Any]], output_file: str, fps: int = 1
         # 그리드 상태 업데이트
         visualizer.update_grid(frame['occupied'], frame['charging'])
         
+        # 이동 중인 도로 셀 표시
+        for r, c in frame['moving']:
+            if 0 <= r < visualizer.rows and 0 <= c < visualizer.cols and visualizer.grid[r, c] == 'R':
+                visualizer.grid[r, c] = 'M'
+        
         # 셀 값 및 텍스트 업데이트
         cell_values = np.zeros(visualizer.grid.shape, dtype=int)
-        for i, c in enumerate('NERPCOCU'):
+        for i, c in enumerate('NERPCOCUM'):
             cell_values[visualizer.grid == c] = i
         
         img.set_array(cell_values)
@@ -377,43 +314,6 @@ def animate_parking(frames: List[Dict[str, Any]], output_file: str, fps: int = 1
             for j in range(visualizer.cols):
                 cell_texts[i][j].set_text(visualizer.grid[i, j])
         
-        # 배터리 차트 업데이트
-        battery_data = frame['battery_status']
-        ax2.clear()  # 그래프 초기화
-        ax2.set_xlabel('배터리 잔량 (%)')
-        ax2.set_ylabel('전기차 ID')
-        ax2.set_title('전기차 배터리 상태')
-        ax2.set_xlim(0, 100)
-        
-        if battery_data and any(battery is not None for battery in battery_data.values()):
-            ev_ids = []
-            battery_values = []
-            
-            for ev_id, battery in sorted(battery_data.items()):
-                if battery is not None:
-                    ev_ids.append(str(ev_id))
-                    battery_values.append(float(battery))
-            
-            # 배터리 잔량에 따라 색상 변경
-            colors = []
-            for battery in battery_values:
-                if battery < 20:
-                    colors.append('red')
-                elif battery < 50:
-                    colors.append('orange')
-                elif battery < 80:
-                    colors.append('lightgreen')
-                else:
-                    colors.append('green')
-            
-            if ev_ids:
-                ax2.barh(ev_ids, battery_values, color=colors)
-                for i, v in enumerate(battery_values):
-                    ax2.text(v + 1, i, f"{v:.1f}%", va='center')
-        else:
-            ax2.text(50, 0.5, '충전 중인 전기차 없음', ha='center', va='center')
-        
-        # blit=False로 설정했으므로 반환값은 중요하지 않음
         return [img, title] + [text for row in cell_texts for text in row]
     
     # 애니메이션 생성
@@ -453,6 +353,16 @@ def main():
         print(f"[ERROR] 로그 파일이 존재하지 않습니다: {args.log_file}")
         return 1
     
+    # charge_log.csv가 입력된 경우 simulation_log.csv로 변경
+    if "charge_log.csv" in args.log_file:
+        simulation_log = args.log_file.replace("charge_log.csv", "simulation_log.csv")
+        if os.path.exists(simulation_log):
+            print(f"[INFO] charge_log.csv 대신 simulation_log.csv를 사용합니다.")
+            args.log_file = simulation_log
+        else:
+            print(f"[ERROR] simulation_log.csv 파일을 찾을 수 없습니다: {simulation_log}")
+            return 1
+    
     print(f"[INFO] 애니메이션 생성 중... 로그 파일: {args.log_file}")
     
     # 애니메이션 데이터 준비
@@ -464,8 +374,11 @@ def main():
     
     print(f"[INFO] 총 {len(frames)} 프레임의 애니메이션 데이터가 생성되었습니다.")
     
+    # 출력 파일 경로를 상위 디렉토리로 변경
+    output_file = os.path.join("..", args.output_file)
+    
     # 애니메이션 생성 및 저장
-    animate_parking(frames, args.output_file, args.fps, args.dpi)
+    animate_parking(frames, output_file, args.fps, args.dpi)
     
     return 0
 

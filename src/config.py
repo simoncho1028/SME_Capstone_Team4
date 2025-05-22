@@ -13,7 +13,7 @@ NUM_EV = 5       # 전기차 수
 TOTAL_SPOTS = 32  # 총 주차 공간 (일반 28 + 충전소 4)
 
 # 물리적 속성 설정
-CELL_SIZE_LENGTH = 5.0 `` # 셀의 길이 (m)
+CELL_SIZE_LENGTH = 5.0  # 셀의 길이 (m)
 CELL_SIZE_WIDTH = 2.0   # 셀의 너비 (m)
 VEHICLE_LENGTH = 5.0    # 차량 길이 (m)
 VEHICLE_WIDTH = 2.0     # 차량 너비 (m)

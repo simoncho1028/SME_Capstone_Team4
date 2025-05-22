@@ -6,9 +6,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from datetime import datetime
+import platform
 
 # 한글 폰트 설정
-plt.rcParams['font.family'] = 'AppleGothic'  # 맥OS 한글 폰트
+if platform.system() == 'Windows':
+    plt.rcParams['font.family'] = 'Malgun Gothic'  # 윈도우 한글 폰트
+elif platform.system() == 'Darwin':  # macOS
+    plt.rcParams['font.family'] = 'AppleGothic'    # 맥OS 한글 폰트
+else:  # Linux
+    plt.rcParams['font.family'] = 'NanumGothic'    # 리눅스 한글 폰트
+
 mpl.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 
 # 로그 엔트리 타입 정의

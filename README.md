@@ -170,3 +170,80 @@ python parking_animation.py results_sim_YYYYMMDD_HHMMSS/simulation_log.csv
 4. 애니메이션 결과물로 시간에 따른 주차장 상태 변화 확인 # SME_Capstone_Team4
 
 # commit test
+
+## 현재 이슈
+- 애니메이션에서 차량이 도로를 이동할 때 해당 셀을 연보라색으로 표시하는 기능이 아직 완벽하게 구현되지 않았습니다. (2024-05-22)
+
+## 최근 업데이트 (2024-05-22)
+1. 시뮬레이션 결과 저장 경로 변경
+   - 결과 파일들이 상위 디렉토리에 저장되도록 수정
+   - 디렉토리 이름 형식: `results_sim_YYYYMMDD_HHMMSS`
+
+2. CSV 자동 저장 기능 추가
+   - 시뮬레이션 결과가 기본적으로 CSV로 저장됨
+   - `--no-save-csv` 옵션으로 CSV 저장 비활성화 가능
+
+3. 한글 폰트 호환성 개선
+   - 운영체제별 한글 폰트 자동 설정
+   - Windows: 'Malgun Gothic' (맑은 고딕)
+   - macOS: 'AppleGothic' (애플 고딕)
+   - Linux: 'NanumGothic' (나눔고딕)
+
+4. 애니메이션 파일 저장 경로 변경
+   - 애니메이션 파일이 상위 디렉토리에 저장되도록 수정
+   - `charge_log.csv` 입력 시 자동으로 `simulation_log.csv` 사용
+
+## 사용 방법
+
+### 시뮬레이션 실행
+```bash
+python main.py [옵션]
+```
+
+주요 옵션:
+- `--time`: 시뮬레이션 시간 (초)
+- `--normal`: 일반 차량 수
+- `--ev`: 전기차 수
+- `--visualize`: 시뮬레이션 결과 시각화
+- `--no-save-csv`: CSV 저장 비활성화
+
+예시:
+```bash
+python main.py --time 7200 --normal 25 --ev 5 --visualize
+```
+
+### 애니메이션 생성
+```bash
+python parking_animation.py <simulation_log.csv> [output.mp4]
+```
+
+옵션:
+- `--fps`: 애니메이션 프레임 속도 (기본값: 10)
+- `--dpi`: 이미지 해상도 (기본값: 100)
+- `--speed`: 시뮬레이션 속도 (기본값: 60.0)
+
+예시:
+```bash
+python parking_animation.py ../results_sim_20240522_123456/simulation_log.csv
+```
+
+## 결과 파일
+시뮬레이션 결과는 상위 디렉토리의 `results_sim_YYYYMMDD_HHMMSS` 폴더에 저장됩니다:
+- `simulation_log.csv`: 시뮬레이션 로그
+- `charge_log.csv`: 충전 관련 로그
+- `arrivals_by_hour.png`: 시간대별 차량 도착 그래프
+- `parking_duration.png`: 주차 시간 분포 그래프
+- `charging_patterns.png`: 충전 패턴 그래프
+- `parking_animation.mp4`: 주차장 상태 애니메이션
+
+## 시스템 요구사항
+- Python 3.8 이상
+- matplotlib
+- pandas
+- numpy
+- ffmpeg (애니메이션 저장용, 선택사항)
+
+## 운영체제별 한글 폰트
+- Windows: 맑은 고딕 (Malgun Gothic)
+- macOS: 애플 고딕 (AppleGothic)
+- Linux: 나눔고딕 (NanumGothic)

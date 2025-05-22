@@ -14,9 +14,16 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
+import platform
 
 # 한글 폰트 설정
-plt.rcParams['font.family'] = 'AppleGothic'  # 맥OS 한글 폰트
+if platform.system() == 'Windows':
+    plt.rcParams['font.family'] = 'Malgun Gothic'  # 윈도우 한글 폰트
+elif platform.system() == 'Darwin':  # macOS
+    plt.rcParams['font.family'] = 'AppleGothic'    # 맥OS 한글 폰트
+else:  # Linux
+    plt.rcParams['font.family'] = 'NanumGothic'    # 리눅스 한글 폰트
+
 mpl.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 
 from src.config import SEED, SIM_TIME
@@ -85,9 +92,9 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        "--save-csv", 
+        "--no-save-csv", 
         action="store_true", 
-        help="결과를 CSV로 저장"
+        help="CSV 저장 비활성화"
     )
     
     parser.add_argument(
@@ -110,8 +117,7 @@ def create_output_directory(prefix):
     Returns:
         생성된 디렉토리 경로
     """
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = f"results_{prefix}_{timestamp}"
+    output_dir = os.path.join("..", f"results_{prefix}")
     
     # 디렉토리가 존재하지 않으면 생성
     if not os.path.exists(output_dir):
@@ -154,8 +160,8 @@ def main():
     print("\n=== 시뮬레이션 결과 ===")
     sim.print_summary()
     
-    # 결과 CSV 저장
-    if args.save_csv:
+    # 결과 CSV 저장 (기본적으로 활성화)
+    if not args.no_save_csv:
         csv_path = os.path.join(output_dir, "simulation_log.csv")
         sim.logger.save_to_csv(csv_path)
         print(f"\n[INFO] 결과가 {csv_path}에 저장되었습니다.")

@@ -7,11 +7,18 @@ import matplotlib as mpl
 import numpy as np
 from typing import List, Dict, Any, Tuple, Optional
 import pandas as pd
+import platform
 
 from src.config import PARKING_MAP
 
 # 한글 폰트 설정
-plt.rcParams['font.family'] = 'AppleGothic'  # 맥OS 한글 폰트
+if platform.system() == 'Windows':
+    plt.rcParams['font.family'] = 'Malgun Gothic'  # 윈도우 한글 폰트
+elif platform.system() == 'Darwin':  # macOS
+    plt.rcParams['font.family'] = 'AppleGothic'    # 맥OS 한글 폰트
+else:  # Linux
+    plt.rcParams['font.family'] = 'NanumGothic'    # 리눅스 한글 폰트
+
 mpl.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 
 class ParkingVisualizer:
@@ -27,7 +34,8 @@ class ParkingVisualizer:
         'P': 'lightgreen',  # 일반 주차면
         'C': 'skyblue',     # EV 충전소
         'O': 'tomato',      # 점유된 주차면 (일반)
-        'U': 'royalblue'    # 사용 중인 충전소
+        'U': 'royalblue',   # 사용 중인 충전소
+        'M': 'plum'         # 이동 중인 도로 점유
     }
     
     def __init__(self, map_data: List[str] = PARKING_MAP):
@@ -45,13 +53,15 @@ class ParkingVisualizer:
         self.grid = np.array([[c for c in row] for row in map_data])
     
     def update_grid(self, occupied_spots: List[Tuple[int, int]], 
-                    charging_spots: List[Tuple[int, int]]) -> None:
+                    charging_spots: List[Tuple[int, int]],
+                    moving_spots: Optional[List[Tuple[int, int]]] = None) -> None:
         """
         주차장 그리드 상태를 업데이트합니다.
         
         Args:
             occupied_spots: 점유된 일반 주차면 좌표 목록 [(r,c), ...]
             charging_spots: 사용 중인 충전소 좌표 목록 [(r,c), ...]
+            moving_spots: 이동 중인 도로 셀 좌표 목록 [(r,c), ...]
         """
         # 그리드 초기화
         self.grid = np.array([[c for c in row] for row in self.map_data])
@@ -65,6 +75,12 @@ class ParkingVisualizer:
         for r, c in charging_spots:
             if 0 <= r < self.rows and 0 <= c < self.cols and self.grid[r, c] == 'C':
                 self.grid[r, c] = 'U'
+        
+        # 이동 중인 도로 셀 표시
+        if moving_spots:
+            for r, c in moving_spots:
+                if 0 <= r < self.rows and 0 <= c < self.cols and self.grid[r, c] == 'R':
+                    self.grid[r, c] = 'M'
     
     def show(self, title: Optional[str] = None, figsize: Tuple[int, int] = (10, 8)):
         """
