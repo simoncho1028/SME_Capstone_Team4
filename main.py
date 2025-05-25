@@ -39,21 +39,21 @@ def parse_arguments():
         파싱된 인자
     """
     parser = argparse.ArgumentParser(
-        description="아파트 주차장 EV 충전 시뮬레이션",
+        description="주차장 시뮬레이션",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     
     parser.add_argument(
         "--seed", 
         type=int, 
-        default=SEED,
+        default=42,
         help="난수 생성기 시드"
     )
     
     parser.add_argument(
         "--time", 
         type=int, 
-        default=SIM_TIME,
+        default=7200,
         help="시뮬레이션 시간 (초)"
     )
     
@@ -87,21 +87,49 @@ def parse_arguments():
     
     parser.add_argument(
         "--visualize", 
-        action="store_true", 
+        action="store_true",
         help="시뮬레이션 결과 시각화"
     )
     
     parser.add_argument(
         "--no-save-csv", 
-        action="store_true", 
-        help="CSV 저장 비활성화"
+        action="store_true",
+        help="CSV 파일 저장 비활성화"
     )
     
     parser.add_argument(
         "--output-prefix", 
         type=str, 
-        default=f"sim_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        default="results_sim",
         help="출력 파일 이름 접두사"
+    )
+
+    # 애니메이션 관련 옵션 추가
+    parser.add_argument(
+        "--animation",
+        action="store_true",
+        help="시뮬레이션 결과 애니메이션 생성"
+    )
+
+    parser.add_argument(
+        "--fps",
+        type=int,
+        default=5,  # 기본값을 5로 변경 (이전 수정사항 반영)
+        help="애니메이션 프레임 속도 (FPS)"
+    )
+
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=80,  # 기본값을 80으로 변경 (이전 수정사항 반영)
+        help="애니메이션 해상도 (DPI)"
+    )
+
+    parser.add_argument(
+        "--speed",
+        type=float,
+        default=60.0,
+        help="시뮬레이션 속도 (실제 1초당 시뮬레이션 시간 초)"
     )
     
     return parser.parse_args()
@@ -117,7 +145,9 @@ def create_output_directory(prefix):
     Returns:
         생성된 디렉토리 경로
     """
-    output_dir = os.path.join("..", f"results_{prefix}")
+    # 현재 시간을 포함한 디렉토리명 생성
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = os.path.join("..", f"results_{prefix}_{timestamp}")
     
     # 디렉토리가 존재하지 않으면 생성
     if not os.path.exists(output_dir):
@@ -218,53 +248,35 @@ def main():
             )
             
             print(f"[INFO] 시각화 이미지가 {output_dir} 디렉토리에 저장되었습니다.")
-    
-    # 시뮬레이션 결과 분석 요약 파일 생성
-    with open(os.path.join(output_dir, "simulation_summary.txt"), "w", encoding="utf-8") as f:
-        f.write("=== 시뮬레이션 요약 ===\n\n")
-        f.write(f"설정: seed={args.seed}, 시간={args.time}초, 일반차량={args.normal}, EV={args.ev}\n")
-        f.write(f"주차 용량: 일반={args.parking_capacity}, 충전소={args.charger_capacity}\n\n")
+
+    # 애니메이션 생성
+    if args.animation:
+        print("\n[INFO] 주차장 상태 애니메이션 생성 중...")
         
-        # 데이터프레임으로 변환하여 분석
-        df = sim.get_results().get_dataframe()
-        f.write(f"총 이벤트 수: {len(df)}\n\n")
+        # 현재 시간을 파일명에 추가
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        animation_filename = f"parking_animation_{timestamp}.mp4"
+        animation_path = os.path.join(output_dir, animation_filename)
         
-        # 이벤트 유형별 분포
-        event_counts = df.groupby("event").size()
-        f.write("이벤트 유형별 분포:\n")
-        for event, count in event_counts.items():
-            f.write(f"- {event}: {count}회\n")
-        f.write("\n")
+        # 애니메이션 생성
+        from parking_animation import prepare_animation_data, animate_parking
         
-        # 차량 유형 분포
-        vehicle_counts = df.drop_duplicates("id").groupby("type").size()
-        f.write("차량 유형 분포: \n")
-        for vtype, count in vehicle_counts.items():
-            f.write(f"- {vtype}: {count}대\n")
-        f.write("\n")
+        # 로그 데이터 가져오기
+        logger = sim.get_results()
+        df = logger.get_dataframe()
         
-        # 전기차 충전 관련 요약
-        ev_df = df[df.type == "ev"]
-        charge_events = ev_df[ev_df.event == "charge_start"].shape[0]
-        f.write(f"전기차 충전 시도 수: {charge_events}회\n")
+        # 애니메이션 데이터 준비
+        print("[INFO] 애니메이션 데이터 준비 중...")
+        frames = prepare_animation_data(df, args.speed)
         
-        # 평균 주차 시간 계산
-        parking_times = []
-        for v_id in df.id.unique():
-            v_df = df[df.id == v_id]
-            arrive = v_df[v_df.event == "arrive"]
-            depart = v_df[v_df.event == "depart"]
-            
-            if not arrive.empty and not depart.empty:
-                arrive_time = arrive.iloc[0].time
-                depart_time = depart.iloc[0].time
-                duration = (depart_time - arrive_time) / 60  # 분 단위
-                
-                parking_times.append(duration)
-        
-        if parking_times:
-            avg_parking_time = sum(parking_times) / len(parking_times)
-            f.write(f"평균 주차 시간: {avg_parking_time:.2f}분\n")
+        if frames:
+            # 애니메이션 생성 및 저장
+            print(f"[INFO] 애니메이션 생성 중... (FPS: {args.fps}, DPI: {args.dpi})")
+            animate_parking(frames, animation_path, args.fps, args.dpi)
+            print(f"[INFO] 애니메이션이 저장되었습니다: {animation_path}")
+        else:
+            print("[ERROR] 애니메이션 프레임을 생성할 수 없습니다.")
+            return 1
     
     print("\n[INFO] 시뮬레이션이 완료되었습니다.")
     print(f"[INFO] 모든 결과가 {output_dir} 디렉토리에 저장되었습니다.")

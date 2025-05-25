@@ -234,7 +234,7 @@ python parking_animation.py ../results_sim_20240522_123456/simulation_log.csv
 - `arrivals_by_hour.png`: 시간대별 차량 도착 그래프
 - `parking_duration.png`: 주차 시간 분포 그래프
 - `charging_patterns.png`: 충전 패턴 그래프
-- `parking_animation.mp4`: 주차장 상태 애니메이션
+- `parking_animation_[timestamp].mp4`: 주차장 상태 변화 애니메이션
 
 ## 시스템 요구사항
 - Python 3.8 이상

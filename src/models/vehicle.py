@@ -169,6 +169,9 @@ class Vehicle:
             current_r, current_c = next_pos
             self.pos = (current_r, current_c)
             
+            # 이동 이벤트 로깅
+            self.log_event("move")
+            
             # 이동 시간 계산 (5km/h = 1.39m/s, 셀 크기 5m)
             move_time = CELL_SIZE_LENGTH / DRIVING_SPEED_MS
             yield self.env.timeout(move_time)

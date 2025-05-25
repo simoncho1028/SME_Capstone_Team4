@@ -53,6 +53,27 @@ class ParkingSimulation:
             logger=self.logger
         )
     
+    def move_vehicle(self, vehicle, new_pos):
+        """
+        차량을 새로운 위치로 이동시킵니다.
+        
+        Args:
+            vehicle: 이동할 차량
+            new_pos: 새로운 위치 (row, col)
+        """
+        # 차량 위치 업데이트
+        vehicle.position = new_pos
+        
+        # 이동 이벤트 로깅
+        self.logger.add_event(
+            vehicle_id=vehicle.id,
+            vehicle_type=vehicle.type,
+            event='move',
+            time=self.env.now,
+            pos=new_pos,
+            battery=vehicle.battery if vehicle.type == 'ev' else None
+        )
+    
     def run(self) -> None:
         """
         시뮬레이션을 실행합니다.

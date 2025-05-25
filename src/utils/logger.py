@@ -59,7 +59,7 @@ class SimulationLogger:
         Args:
             vehicle_id: 차량 ID
             vehicle_type: 차량 타입 ("normal" 또는 "ev")
-            event: 이벤트 유형 (arrive, park_start, charge_start, charge_update, charge_end, depart)
+            event: 이벤트 유형 (arrive, park_start, charge_start, charge_update, charge_end, depart, move)
             time: 이벤트 발생 시간 (시뮬레이션 시간, 초 단위)
             pos: 이벤트 발생 위치 (r, c)
             battery: 전기차의 배터리 잔량 (0-100%)

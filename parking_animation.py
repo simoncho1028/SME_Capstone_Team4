@@ -18,6 +18,7 @@ import matplotlib.colors as mcolors
 from matplotlib.patches import Patch
 from typing import List, Dict, Any, Tuple, Optional
 import platform
+from datetime import datetime
 
 from src.config import PARKING_MAP
 from src.utils.visualizer import ParkingVisualizer
@@ -69,7 +70,7 @@ def parse_arguments():
     parser.add_argument(
         "--dpi", 
         type=int, 
-        default=100,
+        default=80,
         help="이미지 해상도 (DPI)"
     )
     
@@ -83,121 +84,143 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def prepare_animation_data(log_file: str, speed_factor: float = 60.0) -> List[Dict[str, Any]]:
+def prepare_animation_data(df: pd.DataFrame, speed_factor: float = 60.0) -> List[Dict[str, Any]]:
     """
-    시뮬레이션 로그 파일로부터 애니메이션 프레임 데이터를 생성합니다.
+    시뮬레이션 로그 데이터를 애니메이션 프레임으로 변환합니다.
     
     Args:
-        log_file: 로그 CSV 파일 경로
-        speed_factor: 시뮬레이션 속도 배율 (실제 1초당 몇 초의 시뮬레이션 시간인지)
+        df: 시뮬레이션 로그 데이터프레임
+        speed_factor: 시뮬레이션 속도 (실제 1초당 시뮬레이션 시간 초)
         
     Returns:
-        애니메이션 프레임 데이터 목록
+        애니메이션 프레임 리스트
     """
-    # 로그 데이터 읽기
-    df = pd.read_csv(log_file)
+    # 컬럼명 확인 및 매핑
+    column_mapping = {
+        'pos_r': 'row',
+        'pos_c': 'col'
+    }
     
-    # 시간 기준 정렬
-    df = df.sort_values('time')
+    # 컬럼명 변경
+    df = df.rename(columns=column_mapping)
     
-    # 주차장 상태 변화 추적을 위한 데이터 구조
+    # 필요한 컬럼이 있는지 확인
+    required_columns = ['time', 'row', 'col', 'event', 'id']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        print(f"[ERROR] CSV 파일에 필요한 컬럼이 없습니다: {missing_columns}")
+        print(f"[INFO] 현재 CSV 파일의 컬럼: {list(df.columns)}")
+        return []
+    
+    # 시간 기준으로 정렬
+    df = df.sort_values(by='time').reset_index(drop=True)
+    
     frames = []
     
-    # 현재 점유된 주차면 및 충전소 추적
-    occupied_spots = set()
-    charging_spots = set()
-    moving_spots = set()  # 이동 중인 도로 셀 추적
+    # 시간 간격 설정 (프레임 수 조절)
+    frame_interval = speed_factor / 5  # 5로 나누어 프레임 수 감소
     
-    # 차량 ID별 위치 추적
-    vehicle_positions = {}
-    vehicle_types = {}
-    vehicle_states = {}  # 차량 상태 추적 (moving, parked, charging)
+    # 시간 범위 설정
+    start_time = df['time'].min() if not df.empty else 0
+    end_time = df['time'].max() if not df.empty else 0
     
-    # 이전 프레임 시간
-    prev_time = 0.0
+    # 차량별 최신 상태 및 위치 추적
+    vehicle_latest_state = {}
+    vehicle_latest_pos = {}
     
-    # 애니메이션 프레임 간격 (초 단위)
-    frame_interval = speed_factor / 10  # 10fps 기준
+    # 프레임 생성
+    current_time = start_time
+    event_idx = 0 # 현재 처리할 이벤트 인덱스
     
-    # 시간 간격마다 프레임 생성
-    current_time = 0.0
-    max_time = df['time'].max()
-    
-    # 모든 시간대 순회하며 프레임 생성
-    while current_time <= max_time:
-        # 현재 시간까지의 이벤트 필터링
-        events_until_now = df[df.time <= current_time]
+    while current_time <= end_time or (current_time == start_time and end_time == 0):
         
-        # 이전 프레임의 이동 중인 셀 초기화
-        moving_spots.clear()
+        # 현재 시간까지 발생한 이벤트 처리하여 차량 상태 업데이트
+        while event_idx < len(df) and df.loc[event_idx, 'time'] <= current_time:
+            event = df.loc[event_idx]
+            vehicle_id = event['id']
+            pos = (event['row'], event['col'])
+            event_type = event['event']
+            
+            vehicle_latest_pos[vehicle_id] = pos
+            vehicle_latest_state[vehicle_id] = event_type
+            
+            event_idx += 1
+            
+        # 현재 프레임의 주차장 상태 결정
+        occupied = set()
+        charging = set()
+        moving = set()
         
-        # 마지막 이벤트까지 처리
-        for _, row in events_until_now.iterrows():
-            if row['time'] <= prev_time:
-                continue  # 이미 처리한 이벤트는 건너뜀
-                
-            event = row['event']
-            vehicle_id = row['id']
-            pos = (row['pos_r'], row['pos_c'])
-            vehicle_type = row['type']
+        for v_id, state in vehicle_latest_state.items():
+            pos = vehicle_latest_pos[v_id]
+            map_cell_type = PARKING_MAP[pos[0]][pos[1]]
             
-            # 차량 정보 업데이트
-            vehicle_positions[vehicle_id] = pos
-            vehicle_types[vehicle_id] = vehicle_type
+            if state == 'park_start':
+                occupied.add(pos)
+            elif state == 'charge_start':
+                occupied.add(pos)
+                charging.add(pos)
+            elif state == 'move':
+                 # 도로 셀인 경우에만 이동 중으로 표시
+                if map_cell_type == 'R':
+                    moving.add(pos)
+            # 'depart' 또는 'charge_end' 상태인 차량은 표시하지 않음 (이미 나갔거나 상태 변경)
             
-            # 이벤트에 따라 주차장 상태 업데이트
-            if event == 'park_start':
-                cell_type = PARKING_MAP[pos[0]][pos[1]]
-                if cell_type == 'P':
-                    occupied_spots.add(pos)
-                    vehicle_states[vehicle_id] = 'parked'
-                elif cell_type == 'C':
-                    charging_spots.add(pos)
-                    vehicle_states[vehicle_id] = 'charging'
-            
-            elif event == 'charge_start':
-                if pos in occupied_spots:
-                    occupied_spots.remove(pos)
-                charging_spots.add(pos)
-                vehicle_states[vehicle_id] = 'charging'
-            
-            elif event == 'depart':
-                if pos in occupied_spots:
-                    occupied_spots.remove(pos)
-                if pos in charging_spots:
-                    charging_spots.remove(pos)
-                if vehicle_id in vehicle_positions:
-                    del vehicle_positions[vehicle_id]
-                if vehicle_id in vehicle_types:
-                    del vehicle_types[vehicle_id]
-                if vehicle_id in vehicle_states:
-                    del vehicle_states[vehicle_id]
-            
-            # 차량이 도로 위에 있고 주차/충전 중이 아닌 경우
-            if PARKING_MAP[pos[0]][pos[1]] == 'R' and vehicle_id not in vehicle_states:
-                vehicle_states[vehicle_id] = 'moving'
-        
-        # 현재 프레임의 차량 상태에 따라 셀 표시
-        for vehicle_id, pos in vehicle_positions.items():
-            if vehicle_id in vehicle_states:
-                state = vehicle_states[vehicle_id]
-                if state == 'moving' and PARKING_MAP[pos[0]][pos[1]] == 'R':
-                    moving_spots.add(pos)
-        
         # 프레임 추가
         frames.append({
             'time': current_time,
-            'occupied': list(occupied_spots),
-            'charging': list(charging_spots),
-            'moving': list(moving_spots),
-            'vehicles': vehicle_positions.copy(),
-            'vehicle_types': vehicle_types.copy()
+            'occupied': occupied,
+            'charging': charging,
+            'moving': moving
         })
         
-        # 다음 시간 프레임으로 이동
-        prev_time = current_time
+        # 다음 프레임 시간으로 이동
+        # 마지막 이벤트 시간을 초과하지 않도록 보정
+        if current_time == end_time and end_time > 0:
+             break # 마지막 이벤트 시간에 도달했으면 종료
+             
         current_time += frame_interval
-    
+        # 다음 current_time이 다음 이벤트 시간보다 뒤쳐지지 않도록 보정
+        if event_idx < len(df) and current_time < df.loc[event_idx, 'time']:
+             current_time = df.loc[event_idx, 'time']
+        
+    # 마지막 상태를 반영하는 프레임 추가 (선택 사항)
+    if not frames or (frames[-1]['time'] < end_time and end_time > 0):
+         # 마지막 이벤트까지 처리
+        while event_idx < len(df):
+             event = df.loc[event_idx]
+             vehicle_id = event['id']
+             pos = (event['row'], event['col'])
+             event_type = event['event']
+            
+             vehicle_latest_pos[vehicle_id] = pos
+             vehicle_latest_state[vehicle_id] = event_type
+             event_idx += 1
+             
+        occupied = set()
+        charging = set()
+        moving = set()
+        
+        for v_id, state in vehicle_latest_state.items():
+            pos = vehicle_latest_pos[v_id]
+            map_cell_type = PARKING_MAP[pos[0]][pos[1]]
+            
+            if state == 'park_start':
+                occupied.add(pos)
+            elif state == 'charge_start':
+                occupied.add(pos)
+                charging.add(pos)
+            elif state == 'move':
+                 if map_cell_type == 'R':
+                     moving.add(pos)
+                     
+        frames.append({
+             'time': end_time,
+             'occupied': occupied,
+             'charging': charging,
+             'moving': moving
+        })
+        
     return frames
 
 
@@ -288,7 +311,7 @@ def animate_parking(frames: List[Dict[str, Any]], output_file: str, fps: int = 1
             
         frame = frames[frame_idx]
         
-        # 시간 표시 업데이트 (시:분 형식) - 시뮬레이션 시간으로 표시
+        # 시간 표시 업데이트 (시:분 형식)
         sim_time = frame['time']
         hours = int(sim_time / 3600)
         minutes = int((sim_time % 3600) / 60)
@@ -299,7 +322,7 @@ def animate_parking(frames: List[Dict[str, Any]], output_file: str, fps: int = 1
         visualizer.update_grid(frame['occupied'], frame['charging'])
         
         # 이동 중인 도로 셀 표시
-        for r, c in frame['moving']:
+        for r, c in frame.get('moving', set()):
             if 0 <= r < visualizer.rows and 0 <= c < visualizer.cols and visualizer.grid[r, c] == 'R':
                 visualizer.grid[r, c] = 'M'
         
@@ -348,37 +371,41 @@ def main():
     # 인자 파싱
     args = parse_arguments()
     
-    # 로그 파일 확인
-    if not os.path.exists(args.log_file):
-        print(f"[ERROR] 로그 파일이 존재하지 않습니다: {args.log_file}")
+    # 로그 파일 경로 처리
+    log_file = args.log_file
+    if not os.path.exists(log_file):
+        print(f"[ERROR] 로그 파일을 찾을 수 없습니다: {log_file}")
         return 1
     
-    # charge_log.csv가 입력된 경우 simulation_log.csv로 변경
-    if "charge_log.csv" in args.log_file:
-        simulation_log = args.log_file.replace("charge_log.csv", "simulation_log.csv")
-        if os.path.exists(simulation_log):
-            print(f"[INFO] charge_log.csv 대신 simulation_log.csv를 사용합니다.")
-            args.log_file = simulation_log
+    # 출력 파일 경로 설정
+    if args.output_file:
+        output_path = args.output_file
+    else:
+        # 로그 파일이 있는 디렉토리에서 기본 파일명 생성
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(os.path.dirname(log_file), f"parking_animation_{timestamp}.mp4")
+    
+    print(f"[INFO] 로그 파일 읽는 중: {log_file}")
+    try:
+        # CSV 파일 읽기
+        df = pd.read_csv(log_file)
+        
+        # 애니메이션 데이터 준비
+        print("[INFO] 애니메이션 데이터 준비 중...")
+        frames = prepare_animation_data(df, args.speed)
+        
+        if frames:
+            # 애니메이션 생성 및 저장
+            print(f"[INFO] 애니메이션 생성 중... (FPS: {args.fps}, DPI: {args.dpi})")
+            animate_parking(frames, output_path, args.fps, args.dpi)
+            print(f"[INFO] 애니메이션이 저장되었습니다: {output_path}")
         else:
-            print(f"[ERROR] simulation_log.csv 파일을 찾을 수 없습니다: {simulation_log}")
+            print("[ERROR] 애니메이션 프레임을 생성할 수 없습니다.")
             return 1
-    
-    print(f"[INFO] 애니메이션 생성 중... 로그 파일: {args.log_file}")
-    
-    # 애니메이션 데이터 준비
-    frames = prepare_animation_data(args.log_file, args.speed)
-    
-    if not frames:
-        print("[ERROR] 애니메이션 프레임을 생성할 수 없습니다.")
+            
+    except Exception as e:
+        print(f"[ERROR] 파일 처리 중 오류가 발생했습니다: {str(e)}")
         return 1
-    
-    print(f"[INFO] 총 {len(frames)} 프레임의 애니메이션 데이터가 생성되었습니다.")
-    
-    # 출력 파일 경로를 상위 디렉토리로 변경
-    output_file = os.path.join("..", args.output_file)
-    
-    # 애니메이션 생성 및 저장
-    animate_parking(frames, output_file, args.fps, args.dpi)
     
     return 0
 
