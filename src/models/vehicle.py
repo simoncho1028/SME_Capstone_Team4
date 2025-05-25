@@ -45,6 +45,14 @@ for r, c in PARKING_SPOTS:
 if not ACCESSIBLE_PARKING_SPOTS:
     ACCESSIBLE_PARKING_SPOTS = PARKING_SPOTS
 
+# === 일방통행 경로 하드코딩 (출차 경로) ===
+ROAD_PATH = [
+    (1,1),(2,1),(3,1),(4,1),(5,1),(6,1),(7,1),(8,1),(9,1), # 아래로
+    (9,2),(9,3),(9,4), # 오른쪽
+    (8,4),(7,4),(6,4),(5,4),(4,4),(3,4),(2,4),(1,4), # 위로
+    (1,3), # 왼쪽
+    (0,3) # 출구(입구)
+]
 
 class Vehicle:
     """
@@ -127,70 +135,38 @@ class Vehicle:
         """
         current_r, current_c = self.pos
         visited_positions = set()  # 이미 방문한 위치 기록
-        
-        # 목표 위치에 도달할 때까지 이동
         attempts = 0
-        max_movement_attempts = 12  # 최대 이동 시도 횟수를 더 줄임
-        
+        max_movement_attempts = 12  # 최대 이동 시도 횟수
         print(f"[DEBUG] 차량 {self.id} 이동 시작 - 현재: {self.pos}, 목표: ({target_r}, {target_c})")
-        
         while (current_r, current_c) != (target_r, target_c) and attempts < max_movement_attempts:
-            # 목표까지의 방향을 고려하여 다음 위치 선택
-            # 일방통행이므로 가능한 모든 다음 위치를 구함
-            next_candidates = []
-            
-            # 방향 우선순위: 목표에 가까워지는 방향 우선
-            directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]  # 왼쪽, 아래, 오른쪽, 위
-            
+            # 일방통행: 왼쪽→아래→오른쪽→위 순서로만 이동
+            directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]  # 왼, 아래, 오른, 위
+            moved = False
             for dr, dc in directions:
                 nr, nc = current_r + dr, current_c + dc
                 if 0 <= nr < len(PARKING_MAP) and 0 <= nc < len(PARKING_MAP[0]):
-                    # 도로나 입구인 경우만 이동 가능
-                    if PARKING_MAP[nr][nc] in (CELL_ROAD, CELL_ENTRANCE):
-                        # 방문하지 않은 곳이면 후보에 추가
-                        if (nr, nc) not in visited_positions:
-                            # 목표까지의 맨해튼 거리 계산
-                            distance = abs(nr - target_r) + abs(nc - target_c)
-                            next_candidates.append((nr, nc, distance))
-            
-            # 다음 위치 결정
-            if next_candidates:
-                # 목표에 가장 가까운 방향으로 이동
-                next_candidates.sort(key=lambda x: x[2])  # 거리 기준으로 정렬
-                next_r, next_c, _ = next_candidates[0]
-                next_pos = (next_r, next_c)
-            else:
-                # 새로운 위치가 없으면 방문 기록 초기화
+                    if PARKING_MAP[nr][nc] in (CELL_ROAD, CELL_ENTRANCE) and (nr, nc) not in visited_positions:
+                        next_pos = (nr, nc)
+                        moved = True
+                        break
+            if not moved:
+                # 이동할 곳이 없으면 방문 기록 초기화 후 get_next_coord 사용
                 visited_positions.clear()
                 next_pos = get_next_coord(current_r, current_c)
-            
-            # 다음 위치로 이동
-            visited_positions.add(next_pos)  # 방문 위치에 추가
+            visited_positions.add(next_pos)
             current_r, current_c = next_pos
             self.pos = (current_r, current_c)
-            
-            # 이동 이벤트 로깅
             self.log_event("move")
-            
-            # 이동 시간 계산 (5km/h = 1.39m/s, 셀 크기 5m)
             move_time = CELL_SIZE_LENGTH / DRIVING_SPEED_MS
             yield self.env.timeout(move_time)
-            
-            # 목표 위치 도달 확인
             if (current_r, current_c) == (target_r, target_c):
                 print(f"[DEBUG] 차량 {self.id} 목표 위치에 도달 - 위치: {self.pos}, 이동 횟수: {attempts+1}")
                 break
-            
             attempts += 1
-            
-            # 진행 상황 로그
             manhattan_distance = abs(current_r - target_r) + abs(current_c - target_c)
             print(f"[DEBUG] 차량 {self.id} 이동 중 - 현재: {self.pos}, 목표까지 거리: {manhattan_distance}, 시도: {attempts}/{max_movement_attempts}")
-        
-        # 최대 이동 시도 횟수 초과
         if attempts >= max_movement_attempts:
             print(f"[WARN] 차량 {self.id} 이동 시도 횟수 초과 - 현재: {self.pos}, 목표: ({target_r}, {target_c})")
-        
         return
     
     def drive_to_spot(self):
@@ -400,29 +376,46 @@ class Vehicle:
         # 주차 과정 시간 추가 (30초 고정)
         print(f"[DEBUG] 차량 {self.id} 주차 진행 중 - 위치: {self.pos}, 소요 시간: {PARKING_TIME}초")
         yield self.env.timeout(PARKING_TIME)  # 고정된 주차 소요 시간
-        
         # 주차 시간 샘플링 및 대기
         parking_duration = sample_parking_duration()
         print(f"[DEBUG] 차량 {self.id} 주차 완료 - 위치: {self.pos}, 예상 대기 시간: {parking_duration/60:.1f}분")
         yield self.env.timeout(parking_duration)
-        
         # 리소스 반환 (주차면 또는 충전소)
         if self.current_resource and self.resource_request:
             self.current_resource.release(self.resource_request)
             self.current_resource = None
             self.resource_request = None
-            
             # 주차 위치 제거
             if self.pos in Vehicle.occupied_spots:
                 Vehicle.occupied_spots.remove(self.pos)
-        
         self.log_event("depart")
         print(f"[DEBUG] 차량 {self.id} 출차 시작 - 위치: {self.pos}")
-        
-        # 출구까지 이동
-        entrance = find_entrance()
-        yield from self.move_to_position(entrance[0], entrance[1])
-        
+        # 정확한 일방통행 경로를 따라 이동
+        road_path = ROAD_PATH
+        # 현재 위치가 경로상 어디인지 찾기
+        try:
+            idx = road_path.index(self.pos)
+        except ValueError:
+            # 경로에 없다면 가장 가까운 경로 셀로 이동
+            min_dist = float('inf')
+            idx = 0
+            for i, (r, c) in enumerate(road_path):
+                dist = abs(self.pos[0]-r) + abs(self.pos[1]-c)
+                if dist < min_dist:
+                    min_dist = dist
+                    idx = i
+            self.pos = road_path[idx]
+            self.log_event("move")
+            move_time = CELL_SIZE_LENGTH / DRIVING_SPEED_MS
+            yield self.env.timeout(move_time)
+        # 경로를 따라 한 칸씩 이동
+        while self.pos != (0,3):
+            idx = road_path.index(self.pos)
+            next_pos = road_path[idx+1]
+            self.pos = next_pos
+            self.log_event("move")
+            move_time = CELL_SIZE_LENGTH / DRIVING_SPEED_MS
+            yield self.env.timeout(move_time)
         print(f"[DEBUG] 차량 {self.id} 출차 완료 - 최종 위치: {self.pos}")
     
     def process(self):
