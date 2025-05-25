@@ -36,7 +36,7 @@ PARKING_MAP: List[str] = [
     "PRRRRC",
 ]
 
-# 셀 타입 정의
+# 셀 타입 정
 CELL_ENTRANCE = "E"  # 입구/출구
 CELL_ROAD = "R"      # 도로
 CELL_PARK = "P"      # 일반 주차면
