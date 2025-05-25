@@ -189,6 +189,19 @@ def main():
     # 결과 요약 출력
     print("\n=== 시뮬레이션 결과 ===")
     sim.print_summary()
+
+    # 최적화/운영 지표 출력
+    print("\n--- 최적화/운영 지표 ---")
+    charger_count = args.charger_capacity
+    sim_time = args.time
+    total_cost = sim.logger.calculate_charger_cost(charger_count)
+    idle_rate = sim.logger.calculate_charger_idle_rate(sim_time, charger_count)
+    charge_fail_rate = sim.logger.calculate_charge_fail_rate()
+    parking_fail_rate = sim.logger.calculate_parking_fail_rate()
+    print(f"충전소 설치+유지 총비용: {total_cost:,} 원")
+    print(f"충전소 공실률: {idle_rate * 100:.2f} %")
+    print(f"충전 실패율: {charge_fail_rate * 100:.2f} %")
+    print(f"주차 실패율: {parking_fail_rate * 100:.2f} %")
     
     # 결과 CSV 저장 (기본적으로 활성화)
     if not args.no_save_csv:

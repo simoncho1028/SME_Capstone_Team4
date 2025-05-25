@@ -267,4 +267,89 @@ class SimulationLogger:
         
         print(f"그래프가 생성되었습니다: {self.arrivals_graph_path}, {self.parking_duration_graph_path}")
         if not charge_df.empty:
-            print(f"충전 그래프: {self.charge_graph_path}") 
+            print(f"충전 그래프: {self.charge_graph_path}")
+
+    def calculate_charger_cost(self, charger_count: int, charger_price: int = 800000, maintenance_per_year: int = 100000, lifetime_years: int = 7) -> int:
+        """
+        충전소 설치 및 유지 총비용 계산
+        Args:
+            charger_count: 충전기 개수
+            charger_price: 충전기 1대당 설치비(원)
+            maintenance_per_year: 연간 유지비(원)
+            lifetime_years: 충전기 수명(년)
+        Returns:
+            총비용(원)
+        """
+        설치비 = charger_count * charger_price
+        유지비 = charger_count * maintenance_per_year * lifetime_years
+        총비용 = 설치비 + 유지비
+        return 총비용
+
+    def calculate_charger_idle_rate(self, sim_time: float, charger_count: int) -> float:
+        """
+        충전소 공실률 계산 (실제 시간별 점유 충전소 개수 기반)
+        Args:
+            sim_time: 시뮬레이션 전체 시간(초)
+            charger_count: 충전기 개수
+        Returns:
+            공실률(0~1)
+        """
+        df = self.get_dataframe()
+        # 충전 시작/종료 이벤트만 추출, 시간순 정렬
+        charge_events = df[df.event.isin(["charge_start", "charge_end"])].sort_values("time")
+        
+        # (시간, +1/-1) 리스트 생성
+        timeline = []
+        for _, row in charge_events.iterrows():
+            if row["event"] == "charge_start":
+                timeline.append((row["time"], +1))
+            elif row["event"] == "charge_end":
+                timeline.append((row["time"], -1))
+        timeline.sort()
+        
+        # 시뮬레이션 시작~끝까지, 각 구간별 점유 충전소 개수 누적
+        last_time = 0.0
+        current_occupied = 0
+        total_occupied_time = 0.0
+        for time, delta in timeline:
+            duration = time - last_time
+            total_occupied_time += duration * current_occupied
+            current_occupied += delta
+            last_time = time
+        # 마지막 구간(마지막 이벤트~시뮬레이션 종료)도 반영
+        if last_time < sim_time:
+            total_occupied_time += (sim_time - last_time) * current_occupied
+        전체_충전기_가동가능시간 = sim_time * charger_count
+        공실률 = 1 - (total_occupied_time / 전체_충전기_가동가능시간)
+        return max(0.0, min(1.0, 공실률))
+
+    def calculate_charge_fail_rate(self) -> float:
+        """
+        전기차 충전 실패율 계산 (충전 시도 대비 실패 비율)
+        Returns:
+            실패율(0~1)
+        """
+        df = self.get_dataframe()
+        ev_df = df[df.type == "ev"]
+        # 충전 시도: charge_start 이벤트 수
+        total_attempts = ev_df[ev_df.event == "charge_start"].shape[0]
+        # 충전 실패: charge_fail 이벤트 수 (이벤트명이 실제로 기록되는지 확인 필요)
+        fail_count = ev_df[ev_df.event == "charge_fail"].shape[0]
+        if total_attempts == 0:
+            return 0.0
+        return fail_count / total_attempts
+
+    def calculate_parking_fail_rate(self) -> float:
+        """
+        주차 실패율 계산 (주차 시도 대비 실패 비율, EV/일반차 공통)
+        Returns:
+            실패율(0~1)
+        """
+        df = self.get_dataframe()
+        # 주차 시도: park_start 이벤트 수
+        total_attempts = df[df.event == "park_start"].shape[0]
+        # 주차 실패: park_fail 이벤트 수 (이벤트명이 실제로 기록되는지 확인 필요)
+        fail_count = df[df.event == "park_fail"].shape[0]
+        if total_attempts == 0:
+            return 0.0
+        return fail_count / total_attempts 
