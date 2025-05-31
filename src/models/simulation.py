@@ -144,7 +144,7 @@ class CustomParkingSimulation(ParkingSimulation):
             random_seed: 난수 생성을 위한 시드
             normal_count: 생성할 일반 차량 수
             ev_count: 생성할 전기차 수
-            interarrival_func: 차량 도착 간격을 샘플링하는 함수
+            interarrival_func: 차량 도착 간격을 샘플링하는 함수 (이제 사용되지 않음)
             parking_duration_func: 주차 시간을 샘플링하는 함수
             battery_level_func: 배터리 잔량을 샘플링하는 함수
             charge_time_func: 충전 시간을 샘플링하는 함수
@@ -163,18 +163,23 @@ class CustomParkingSimulation(ParkingSimulation):
             parking_res=self.parking_res,
             charger_res=self.charger_res,
             logger=self.logger,
+            sim_time=self.sim_time,
             interarrival_func=interarrival_func,
             normal_count=normal_count,
             ev_count=ev_count
         )
         
-        # 사용자 정의 샘플링 함수를 helpers.py의 함수들과 교체
-        if any([parking_duration_func, battery_level_func, charge_time_func]):
+        # 사용자 정의 샘플링 함수를 helpers.py의 함수들과 교체 (parking_duration만 해당)
+        if parking_duration_func:
             import src.utils.helpers as helpers
-            
-            if parking_duration_func:
-                helpers.sample_parking_duration = parking_duration_func
-            
+            # CustomVehicleGenerator에서 주차 시간을 Vehicle 생성 시점에 샘플링하므로,
+            # 여기서 sample_parking_duration 함수 자체를 교체하는 로직은 필요 없어짐.
+            # 대신 Vehicle 클래스 내부에서 sample_time_dependent_parking_duration 함수가 env를 사용하도록 해야 함.
+            # 하지만 현재 Vehicle 클래스는 이미 env를 가지고 있고 해당 함수에 넘겨주고 있으므로 추가 수정 필요 없음.
+            pass # 여기서는 특별히 할 일 없음. parking_duration_func 인자는 CustomVehicleSimulation에서만 사용될 수 있음.
+
+        # 사용자 정의 샘플링 함수를 helpers.py의 함수들과 교체
+        if any([battery_level_func, charge_time_func]):
             if battery_level_func:
                 helpers.sample_battery_level = battery_level_func
             

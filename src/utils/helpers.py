@@ -163,6 +163,14 @@ exp_lambdas = [
     0.0173, 0.0239, 0.0282, 0.0377, 0.0575, 0.1136
 ]
 
+# 하루 총 입차 차량 기준 시간대별 정규화된 입차 비율
+normalized_entry_ratios = [
+    0.013531, 0.006599, 0.002784, 0.001782, 0.001392, 0.003202,
+    0.007406, 0.016510, 0.017680, 0.013531, 0.018236, 0.039313,
+    0.047053, 0.019823, 0.019267, 0.023387, 0.045438, 0.103878,
+    0.184676, 0.133307, 0.113122, 0.084528, 0.055489, 0.028065
+]
+
 # 시간대별 주차 시간 감마 분포 파라미터 (shape, scale)
 gamma_params = [
     (2.38, 1024.38), (2.45, 918.24), (1.97, 994.74), (1.68, 1109.27),
@@ -176,20 +184,20 @@ gamma_params = [
 def sample_time_dependent_interarrival(env) -> float:
     """
     현재 시간대에 따른 입차 간격을 샘플링합니다.
-    
-    Args:
-        env: SimPy 환경 객체
-        
-    Returns:
-        float: 다음 차량 도착까지의 시간 간격 (초)
+    (이 함수는 더 이상 사용되지 않음)
     """
     current_hour = int(env.now // 3600) % 24
+    # 경고: 이 λ 값은 시간당 평균 입차 횟수를 나타내므로, 초당으로 변환하여 사용해야 함.
+    # 현재는 generate_realistic_entry_times에서 전체 차량 수 기준으로 샘플링하므로 이 함수는 사용하지 않음.
     lambda_value = exp_lambdas[current_hour]
-    return random.expovariate(lambda_value)
+    # 올바르게 사용하려면 lambda_sec = lambda_value / 3600.0 로 변환 필요
+    # random.expovariate(lambda_sec)
+    return float('inf') # 이 함수는 사용하지 않도록 무한대 반환
 
 def sample_time_dependent_parking_duration(env) -> float:
     """
     현재 시간대에 따른 주차 시간을 샘플링합니다.
+    감마 분포 파라미터(scale은 분 단위)를 사용하며, 결과를 초 단위로 반환합니다.
     
     Args:
         env: SimPy 환경 객체
@@ -198,10 +206,15 @@ def sample_time_dependent_parking_duration(env) -> float:
         float: 주차 시간 (초)
     """
     current_hour = int(env.now // 3600) % 24
-    shape, scale = gamma_params[current_hour]
-    return np.random.gamma(shape, scale)
+    shape, scale_minutes = gamma_params[current_hour]
+    
+    # 감마 분포에서 분 단위로 샘플링
+    parking_duration_minutes = np.random.gamma(shape, scale_minutes)
+    
+    # 초 단위로 변환하여 반환
+    return parking_duration_minutes * 60.0
 
-# 기존 함수들은 기본값으로 유지
+# 기존 함수들은 기본값으로 유지 (호환성을 위해 남겨둠)
 def sample_interarrival() -> float:
     """
     다음 차량 도착까지의 시간 간격을 샘플링합니다.

@@ -57,7 +57,7 @@ def parse_arguments():
     parser.add_argument(
         "--time", 
         type=int, 
-        default=7200,
+        default=86400,
         help="시뮬레이션 시간 (초)"
     )
     
