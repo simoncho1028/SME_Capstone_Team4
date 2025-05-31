@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
 import platform
+from typing import List
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -26,7 +27,10 @@ else:  # Linux
 
 mpl.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 
-from src.config import SEED, SIM_TIME
+from src.config import (
+    SEED, SIM_TIME, PARKING_MAP,  # PARKING_MAP 추가
+    generate_adjacent_charger_layouts  # 새로 추가한 함수도 import
+)
 from src.models.simulation import ParkingSimulation, CustomParkingSimulation
 from src.utils.visualizer import ParkingVisualizer
 
@@ -131,7 +135,14 @@ def parse_arguments():
         default=60.0,
         help="시뮬레이션 속도 (실제 1초당 시뮬레이션 시간 초)"
     )
-    
+
+    # 최적화 모드 추가
+    parser.add_argument(
+        "--optimize",
+        action="store_true",
+        help="충전소 배치 최적화 수행"
+    )
+
     return parser.parse_args()
 
 
@@ -157,23 +168,171 @@ def create_output_directory(prefix):
     return output_dir
 
 
+def visualize_layout_terminal(layout: List[str], title: str = ""):
+    """
+    주차장 배치를 터미널에 컬러로 시각화합니다.
+    """
+    # Windows에서 ANSI 색상 지원 활성화
+    if platform.system() == 'Windows':
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+    
+    # ANSI 색상 코드
+    colors = {
+        'N': '\033[90m',  # 회색 (경계/미사용)
+        'E': '\033[93m',  # 노란색 (입구/출구)
+        'R': '\033[37m',  # 흰색 (도로)
+        'P': '\033[94m',  # 파란색 (일반 주차면)
+        'C': '\033[92m',  # 초록색 (충전소)
+        'RESET': '\033[0m'
+    }
+    
+    print("\n")  # 빈 줄 추가
+    if title:
+        print(f"=== {title} ===")
+        print()
+    
+    # 상단 경계선
+    width = len(layout[0]) * 4 + 1
+    print("+" + "-" * width + "+")
+    
+    # 맵 출력
+    for row in layout:
+        print("|", end=" ")
+        for cell in row:
+            color = colors.get(cell, '')
+            reset = colors['RESET']
+            if cell == 'C':
+                print(f"{color}[{cell}]{reset}", end=" ")
+            else:
+                print(f"{color} {cell} {reset}", end=" ")
+        print("|")
+    
+    # 하단 경계선
+    print("+" + "-" * width + "+")
+    print()
+    
+    # 범례 출력
+    print("범례:")
+    for cell, desc in [('N', '경계/미사용'), ('E', '입구/출구'), ('R', '도로'),
+                      ('P', '일반 주차면'), ('C', '충전소')]:
+        color = colors.get(cell, '')
+        reset = colors['RESET']
+        if cell == 'C':
+            print(f"{color}[{cell}]{reset}: {desc}  ", end="")
+        else:
+            print(f"{color} {cell} {reset}: {desc}  ", end="")
+    print("\n")
+
+
+def optimize_adjacent_chargers(args):
+    """
+    인접한 2개의 충전소에 대한 최적의 배치를 찾습니다.
+    """
+    global PARKING_MAP
+    
+    # 기본 맵에서 충전소 제거 (모든 'C'를 'P'로 변경)
+    base_map = [row.replace('C', 'P') for row in PARKING_MAP]
+    
+    # 가능한 모든 인접 충전소 배치 생성
+    layouts = generate_adjacent_charger_layouts(base_map)
+    
+    best_layout = None
+    best_metrics = {
+        'total_cost': float('inf'),
+        'idle_rate': 1.0,
+        'charge_fail_rate': 1.0,
+        'parking_fail_rate': 1.0
+    }
+    
+    print(f"[INFO] 총 {len(layouts)}개의 가능한 배치에 대해 시뮬레이션을 실행합니다...")
+    print("\n진행률:")
+    
+    # 각 배치에 대해 시뮬레이션 실행
+    for i, layout in enumerate(layouts, 1):
+        print(f"\r[{i}/{len(layouts)}] {i/len(layouts)*100:.1f}% 완료", end="")
+        
+        # 임시로 PARKING_MAP 수정
+        original_map = PARKING_MAP
+        PARKING_MAP = layout
+        
+        # 시뮬레이션 실행
+        sim = CustomParkingSimulation(
+            parking_capacity=args.parking_capacity - 2,  # 충전소 2개만큼 감소
+            charger_capacity=2,
+            sim_time=args.time,
+            random_seed=args.seed,
+            normal_count=args.normal,
+            ev_count=args.ev
+        )
+        sim.run()
+        
+        # 성능 지표 계산
+        total_cost = sim.logger.calculate_charger_cost(2)  # 2개 충전소
+        idle_rate = sim.logger.calculate_charger_idle_rate(args.time, 2)
+        charge_fail_rate = sim.logger.calculate_charge_fail_rate()
+        parking_fail_rate = sim.logger.calculate_parking_fail_rate()
+        
+        # 목적 함수 계산
+        objective = (
+            total_cost * 0.4 +
+            idle_rate * 0.2 * 1000000 +
+            charge_fail_rate * 0.2 * 1000000 +
+            parking_fail_rate * 0.2 * 1000000
+        )
+        
+        # 더 나은 결과를 찾았다면 업데이트
+        if objective < best_metrics['total_cost']:
+            best_layout = layout
+            best_metrics = {
+                'total_cost': total_cost,
+                'idle_rate': idle_rate,
+                'charge_fail_rate': charge_fail_rate,
+                'parking_fail_rate': parking_fail_rate
+            }
+        
+        # 원래 맵으로 복구
+        PARKING_MAP = original_map
+    
+    print("\n\n[INFO] 시뮬레이션 완료!")
+    return best_layout, best_metrics
+
+
 def main():
     """
     메인 실행 함수
     """
+    global PARKING_MAP
+    
     # 인자 파싱
     args = parse_arguments()
     
     # 시드 설정
     random.seed(args.seed)
     
-    print(f"[INFO] 시뮬레이션을 시작합니다...")
-    print(f"[INFO] 설정: seed={args.seed}, 시간={args.time}초, 일반차량={args.normal}, EV={args.ev}")
-    
     # 결과 저장 디렉토리 생성
     output_dir = create_output_directory(args.output_prefix)
     
-    # 시뮬레이션 생성 및 실행
+    # 최적화 모드
+    if args.optimize:
+        print("[INFO] 인접한 2개 충전소의 최적 배치를 찾습니다...")
+        best_layout, best_metrics = optimize_adjacent_chargers(args)
+        
+        print("\n=== 최적화 결과 ===")
+        print(f"총 비용: {best_metrics['total_cost']:,} 원")
+        print(f"충전소 공실률: {best_metrics['idle_rate'] * 100:.2f} %")
+        print(f"충전 실패율: {best_metrics['charge_fail_rate'] * 100:.2f} %")
+        print(f"주차 실패율: {best_metrics['parking_fail_rate'] * 100:.2f} %")
+        
+        # 최적 배치로 PARKING_MAP 업데이트
+        PARKING_MAP = best_layout
+        print("\n[INFO] 최적 배치로 시뮬레이션을 실행합니다...")
+    else:
+        print(f"[INFO] 일반 시뮬레이션을 시작합니다...")
+        print(f"[INFO] 설정: seed={args.seed}, 시간={args.time}초, 일반차량={args.normal}, EV={args.ev}")
+    
+    # 시뮬레이션 실행
     sim = CustomParkingSimulation(
         parking_capacity=args.parking_capacity,
         charger_capacity=args.charger_capacity,
@@ -182,14 +341,12 @@ def main():
         normal_count=args.normal,
         ev_count=args.ev
     )
-    
-    # 시뮬레이션 실행
     sim.run()
     
     # 결과 요약 출력
     print("\n=== 시뮬레이션 결과 ===")
     sim.print_summary()
-
+    
     # 최적화/운영 지표 출력
     print("\n--- 최적화/운영 지표 ---")
     charger_count = args.charger_capacity
@@ -203,7 +360,11 @@ def main():
     print(f"충전 실패율: {charge_fail_rate * 100:.2f} %")
     print(f"주차 실패율: {parking_fail_rate * 100:.2f} %")
     
-    # 결과 CSV 저장 (기본적으로 활성화)
+    # 최종 주차장 배치 시각화
+    print("\n최종 주차장 배치:")
+    visualize_layout_terminal(PARKING_MAP, "최종 배치")
+    
+    # 결과 CSV 저장
     if not args.no_save_csv:
         csv_path = os.path.join(output_dir, "simulation_log.csv")
         sim.logger.save_to_csv(csv_path)
@@ -214,76 +375,42 @@ def main():
     parking_path = os.path.join(output_dir, "parking_duration.png")
     charging_path = os.path.join(output_dir, "charging_patterns.png")
     
-    # 생성된 그래프 파일 이름을 설정하고 로거에 전달
     sim.logger.set_graph_paths(arrivals_path, parking_path, charging_path)
     sim.generate_plots()
     
-    # 시각화
+    # 시각화 (마지막에 한 번만)
     if args.visualize:
-        print("\n[INFO] 주차장 상태 시각화 중...")
-        
-        # 로그 데이터 가져오기
+        print("\n[INFO] 최종 주차장 상태 시각화 중...")
         logger = sim.get_results()
         df = logger.get_dataframe()
-        
-        # 시각화 도구 초기화
         visualizer = ParkingVisualizer()
-        
-        # 주차장 상태 변화 데이터 생성
         frames = visualizer.generate_animation_data(df)
         
-        # 주요 상태 스냅샷 저장 (시작, 중간, 끝)
         if len(frames) > 0:
-            # 첫 번째 프레임
-            visualizer.save_state_image(
-                frames[0]['occupied'], 
-                frames[0]['charging'], 
-                os.path.join(output_dir, "parking_state_start.png"),
-                f"주차장 상태 (시작: {frames[0]['time']/3600:.1f}시간)"
-            )
-            
-            # 중간 프레임 (있다면)
-            if len(frames) > 2:
-                mid_idx = len(frames) // 2
-                visualizer.save_state_image(
-                    frames[mid_idx]['occupied'], 
-                    frames[mid_idx]['charging'], 
-                    os.path.join(output_dir, "parking_state_middle.png"),
-                    f"주차장 상태 (중간: {frames[mid_idx]['time']/3600:.1f}시간)"
-                )
-            
-            # 마지막 프레임
+            # 최종 상태만 저장
             visualizer.save_state_image(
                 frames[-1]['occupied'], 
                 frames[-1]['charging'], 
-                os.path.join(output_dir, "parking_state_end.png"),
-                f"주차장 상태 (종료: {frames[-1]['time']/3600:.1f}시간)"
+                os.path.join(output_dir, "final_parking_state.png"),
+                f"최종 주차장 상태 (시간: {frames[-1]['time']/3600:.1f}시간)"
             )
-            
-            print(f"[INFO] 시각화 이미지가 {output_dir} 디렉토리에 저장되었습니다.")
-
-    # 애니메이션 생성
+            print(f"[INFO] 최종 상태 이미지가 {output_dir} 디렉토리에 저장되었습니다.")
+    
+    # 애니메이션 (요청된 경우에만)
     if args.animation:
         print("\n[INFO] 주차장 상태 애니메이션 생성 중...")
-        
-        # 현재 시간을 파일명에 추가
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         animation_filename = f"parking_animation_{timestamp}.mp4"
         animation_path = os.path.join(output_dir, animation_filename)
         
-        # 애니메이션 생성
         from parking_animation import prepare_animation_data, animate_parking
-        
-        # 로그 데이터 가져오기
         logger = sim.get_results()
         df = logger.get_dataframe()
         
-        # 애니메이션 데이터 준비
         print("[INFO] 애니메이션 데이터 준비 중...")
         frames = prepare_animation_data(df, args.speed)
         
         if frames:
-            # 애니메이션 생성 및 저장
             print(f"[INFO] 애니메이션 생성 중... (FPS: {args.fps}, DPI: {args.dpi})")
             animate_parking(frames, animation_path, args.fps, args.dpi)
             print(f"[INFO] 애니메이션이 저장되었습니다: {animation_path}")
