@@ -8,7 +8,7 @@ import random
 from src.utils.helpers import (
     sample_battery_level, sample_parking_duration, 
     sample_charge_time, get_next_coord, cell_type, find_entrance,
-    find_nearest_parking_spot, find_all_parking_spots
+    find_nearest_parking_spot, find_all_parking_spots, sample_time_dependent_parking_duration
 )
 from src.utils.logger import SimulationLogger
 from src.config import (
@@ -99,6 +99,9 @@ class Vehicle:
         # 사용 중인 리소스 추적
         self.current_resource: Optional[simpy.Resource] = None
         self.resource_request: Optional[simpy.Request] = None
+        
+        # 주차 시간 초기화
+        self.parking_duration = sample_time_dependent_parking_duration(env)
         
         # 차량 도착 이벤트 로깅
         self.log_event("arrive")
@@ -376,10 +379,11 @@ class Vehicle:
         # 주차 과정 시간 추가 (30초 고정)
         print(f"[DEBUG] 차량 {self.id} 주차 진행 중 - 위치: {self.pos}, 소요 시간: {PARKING_TIME}초")
         yield self.env.timeout(PARKING_TIME)  # 고정된 주차 소요 시간
-        # 주차 시간 샘플링 및 대기
-        parking_duration = sample_parking_duration()
-        print(f"[DEBUG] 차량 {self.id} 주차 완료 - 위치: {self.pos}, 예상 대기 시간: {parking_duration/60:.1f}분")
-        yield self.env.timeout(parking_duration)
+        
+        # 저장된 주차 시간만큼 대기
+        print(f"[DEBUG] 차량 {self.id} 주차 완료 - 위치: {self.pos}, 예상 대기 시간: {self.parking_duration/60:.1f}분")
+        yield self.env.timeout(self.parking_duration)
+        
         # 리소스 반환 (주차면 또는 충전소)
         if self.current_resource and self.resource_request:
             self.current_resource.release(self.resource_request)

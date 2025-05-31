@@ -2,7 +2,8 @@
 주차장 시뮬레이션에 필요한 유틸리티 함수들을 제공하는 모듈입니다.
 """
 import random
-from typing import Tuple, List, Optional
+import numpy as np
+from typing import Tuple, List, Optional, Callable
 
 from src.config import PARKING_MAP, CELL_ENTRANCE, CELL_ROAD
 
@@ -154,14 +155,59 @@ def find_nearest_parking_spot(current_r: int, current_c: int,
     return nearest_spot
 
 
-# 분포 정의 함수들 (모두 초 단위 반환)
+# 시간대별 입차 간격 분포 파라미터 (λ)
+exp_lambdas = [
+    0.2356, 0.4831, 1.145, 1.789, 2.290, 0.9957,
+    0.4305, 0.1931, 0.1803, 0.2356, 0.1748, 0.0811,
+    0.0678, 0.1608, 0.1655, 0.1363, 0.0702, 0.0307,
+    0.0173, 0.0239, 0.0282, 0.0377, 0.0575, 0.1136
+]
+
+# 시간대별 주차 시간 감마 분포 파라미터 (shape, scale)
+gamma_params = [
+    (2.38, 1024.38), (2.45, 918.24), (1.97, 994.74), (1.68, 1109.27),
+    (3.53, 698.02), (3.13, 740.71), (3.81, 630.01), (3.23, 781.09),
+    (0.25, 2478.54), (0.89, 1628.65), (0.72, 1660.96), (0.17, 1696.04),
+    (0.16, 1776.03), (0.30, 1491.06), (0.96, 924.99), (1.35, 803.32),
+    (1.84, 611.51), (1.90, 590.75), (1.85, 516.52), (2.21, 405.02),
+    (2.59, 304.79), (2.66, 249.52), (2.53, 201.76), (2.45, 147.55)
+]
+
+def sample_time_dependent_interarrival(env) -> float:
+    """
+    현재 시간대에 따른 입차 간격을 샘플링합니다.
+    
+    Args:
+        env: SimPy 환경 객체
+        
+    Returns:
+        float: 다음 차량 도착까지의 시간 간격 (초)
+    """
+    current_hour = int(env.now // 3600) % 24
+    lambda_value = exp_lambdas[current_hour]
+    return random.expovariate(lambda_value)
+
+def sample_time_dependent_parking_duration(env) -> float:
+    """
+    현재 시간대에 따른 주차 시간을 샘플링합니다.
+    
+    Args:
+        env: SimPy 환경 객체
+        
+    Returns:
+        float: 주차 시간 (초)
+    """
+    current_hour = int(env.now // 3600) % 24
+    shape, scale = gamma_params[current_hour]
+    return np.random.gamma(shape, scale)
+
+# 기존 함수들은 기본값으로 유지
 def sample_interarrival() -> float:
     """
     다음 차량 도착까지의 시간 간격을 샘플링합니다.
     평균 300초(5분)의 지수 분포 사용
     """
     return random.expovariate(1/300)
-
 
 def sample_parking_duration() -> float:
     """
@@ -170,14 +216,12 @@ def sample_parking_duration() -> float:
     """
     return random.expovariate(1/3600)
 
-
 def sample_battery_level() -> float:
     """
     전기차의 초기 배터리 잔량을 샘플링합니다.
     충전이 필요하도록 0~50% 범위의 균등 분포 사용
     """
     return random.uniform(0, 50)
-
 
 def sample_charge_time() -> float:
     """

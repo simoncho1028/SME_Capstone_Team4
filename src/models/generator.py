@@ -3,10 +3,13 @@
 """
 import simpy
 import random
+import numpy as np
 from typing import List, Callable, Optional
 
 from src.config import NUM_NORMAL, NUM_EV
-from src.utils.helpers import sample_interarrival
+from src.utils.helpers import (
+    sample_interarrival, sample_time_dependent_interarrival
+)
 from src.utils.logger import SimulationLogger
 from src.models.vehicle import Vehicle
 
@@ -99,21 +102,38 @@ class CustomVehicleGenerator(VehicleGenerator):
             ev_count: 생성할 전기차 수
         """
         super().__init__(env, parking_res, charger_res, logger)
-        # interarrival_func가 None이면 기본 함수 사용
-        self.interarrival_func = interarrival_func if interarrival_func is not None else sample_interarrival
         self.normal_count = normal_count
         self.ev_count = ev_count
-    
+        self.total_vehicles = normal_count + ev_count
+        self.env = env
+        self.vehicle_types = ["normal"] * normal_count + ["ev"] * ev_count
+        random.shuffle(self.vehicle_types)
+        self.entry_times = self._generate_realistic_entry_times(self.total_vehicles, self.env._now if hasattr(self.env, '_now') else 0)
+
+    def _generate_realistic_entry_times(self, total_vehicles, start_time):
+        """
+        현실적인 입차 시각을 시간대별 λ 비율에 따라 샘플링합니다.
+        하루(24시간, 86400초) 기준으로 분포.
+        """
+        from src.utils.helpers import exp_lambdas
+        total_time = 86400  # 24시간(초)
+        lambdas = np.array(exp_lambdas)
+        ratios = lambdas / lambdas.sum()
+        entries_per_hour = np.round(total_vehicles * ratios).astype(int)
+        entry_times = []
+        for hour, n in enumerate(entries_per_hour):
+            entry_times += list(hour * 3600 + np.random.uniform(0, 3600, n))
+        # 혹시라도 차량 수가 초과될 수 있으니 자름
+        entry_times = entry_times[:total_vehicles]
+        entry_times.sort()
+        return entry_times
+
     def run(self) -> None:
         """
-        사용자 정의 분포에 따라 차량을 생성합니다.
+        현실적인 입차 시각에 따라 차량을 생성합니다.
         """
-        # 모든 차량(일반 + 전기차)을 랜덤 순서로 생성
-        total_vehicles = self.normal_count + self.ev_count
-        vehicle_types = ["normal"] * self.normal_count + ["ev"] * self.ev_count
-        random.shuffle(vehicle_types)  # 차량 유형 순서를 랜덤하게 섞음
-        
-        # 랜덤 순서로 차량 생성
-        for vtype in vehicle_types:
-            yield self.env.timeout(self.interarrival_func())
+        for vtype, entry_time in zip(self.vehicle_types, self.entry_times):
+            # 현재 env.now에서 entry_time까지 대기
+            wait_time = max(0, entry_time - self.env.now)
+            yield self.env.timeout(wait_time)
             self.generate_vehicle(vtype) 
