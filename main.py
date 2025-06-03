@@ -143,6 +143,34 @@ def parse_arguments():
         help="충전소 배치 최적화 수행"
     )
 
+    # 레이아웃 시각화 옵션 추가
+    parser.add_argument(
+        "--visualize-layout",
+        action="store_true",
+        help="각 층별 주차장 레이아웃을 이미지로 저장"
+    )
+    
+    parser.add_argument(
+        "--layout-dpi",
+        type=int,
+        default=100,
+        help="레이아웃 이미지 해상도 (DPI)"
+    )
+    
+    parser.add_argument(
+        "--layout-cell-size",
+        type=float,
+        default=1.0,
+        help="레이아웃 그리드 셀 크기"
+    )
+    
+    parser.add_argument(
+        "--layout-font-size",
+        type=float,
+        default=8.0,
+        help="레이아웃 텍스트 폰트 크기"
+    )
+
     return parser.parse_args()
 
 
@@ -314,6 +342,17 @@ def main():
     # 결과 저장 디렉토리 생성
     output_dir = create_output_directory(args.output_prefix)
     
+    # 레이아웃 시각화 요청이 있는 경우
+    if args.visualize_layout:
+        from parking_layout_visualizer import ParkingLayoutVisualizer
+        visualizer = ParkingLayoutVisualizer("layout_images")
+        visualizer.dpi = args.layout_dpi
+        visualizer.cell_size = args.layout_cell_size
+        visualizer.font_size = args.layout_font_size
+        visualizer.visualize_all_floors()
+        if not args.animation:  # 애니메이션을 생성하지 않는 경우 종료
+            return
+
     # 최적화 모드
     if args.optimize:
         print("[INFO] 인접한 2개 충전소의 최적 배치를 찾습니다...")

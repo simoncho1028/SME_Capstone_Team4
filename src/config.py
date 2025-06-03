@@ -1,7 +1,8 @@
 """
 시뮬레이션 환경 설정과 관련된 모든 상수 및 구성 값을 관리하는 모듈입니다.
 """
-from typing import List
+from typing import Dict, List
+from .utils.parking_map_loader import ParkingMapLoader
 
 # 시뮬레이션 기본 설정
 SEED = 42
@@ -20,6 +21,36 @@ VEHICLE_WIDTH = 2.0     # 차량 너비 (m)
 DRIVING_SPEED = 5.0     # 주행 속도 (km/h)
 DRIVING_SPEED_MS = DRIVING_SPEED * 1000 / 3600  # 주행 속도 (m/s) = 약 1.39m/s
 PARKING_TIME = 30.0     # 주차 소요 시간 (초)
+
+# 주차장 맵 로더 초기화 및 맵 로드
+_map_loader = ParkingMapLoader()
+PARKING_MAPS = _map_loader.load_all_maps()
+
+# 기본 맵으로 지하 1층 사용
+PARKING_MAP = PARKING_MAPS.get("B1F", [])
+
+# 층별 주차장 맵 접근을 위한 함수
+def get_floor_map(floor: str) -> List[List[str]]:
+    """
+    특정 층의 주차장 맵 반환
+    
+    Args:
+        floor: 층 식별자 (GF, B1F, B2F, B3F)
+        
+    Returns:
+        List[List[str]]: 해당 층의 주차장 맵
+    """
+    return PARKING_MAPS.get(floor, [])
+
+# 모든 층의 주차장 맵 반환
+def get_all_floor_maps() -> Dict[str, List[List[str]]]:
+    """
+    모든 층의 주차장 맵 반환
+    
+    Returns:
+        Dict[str, List[List[str]]]: 모든 층의 주차장 맵
+    """
+    return PARKING_MAPS
 
 # 지도 정의 (10×6 그리드)
 # N = 경계/미사용, E = 입구/출구, R = 도로, P = 일반 주차면, C = EV 충전소
