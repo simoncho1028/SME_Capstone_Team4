@@ -2,16 +2,47 @@
 시뮬레이션 환경 설정과 관련된 모든 상수 및 구성 값을 관리하는 모듈입니다.
 """
 from typing import Dict, List
-from .utils.parking_map_loader import ParkingMapLoader
+from src.utils.parking_map_loader import ParkingMapLoader
 
 # 시뮬레이션 기본 설정
 SEED = 42
 SIM_TIME = 86_400  # 24시간 (초 단위)
 
 # 차량 설정
-NUM_NORMAL = 25  # 일반 차량 수
-NUM_EV = 5       # 전기차 수
-TOTAL_SPOTS = 32  # 총 주차 공간 (일반 28 + 충전소 4)
+NUM_NORMAL = 830  # 일반 차량 수
+NUM_EV = 36      # 전기차 수
+TOTAL_SPOTS = 866  # 총 주차 공간
+
+# 주차장 설정
+DEFAULT_PARKING_CAPACITY = 686  # 총 주차면 수
+DEFAULT_CHARGER_COUNT = 10     # EV 충전소 수
+DEFAULT_BUILDING_COUNT = 8     # 건물 동 수
+
+# 시간 설정 (초 단위)
+MIN_PARKING_TIME = 30 * 60     # 최소 주차 시간 (30분)
+MAX_PARKING_TIME = 12 * 3600   # 최대 주차 시간 (12시간)
+MIN_CHARGING_TIME = 30 * 60    # 최소 충전 시간 (30분)
+MAX_CHARGING_TIME = 4 * 3600   # 최대 충전 시간 (4시간)
+MIN_ARRIVAL_INTERVAL = 60      # 최소 도착 간격 (1분)
+MAX_ARRIVAL_INTERVAL = 15 * 60 # 최대 도착 간격 (15분)
+
+# 배터리 설정
+DEFAULT_BATTERY_MEAN = 40.0    # 평균 초기 배터리 잔량 (%)
+DEFAULT_BATTERY_STD = 20.0     # 배터리 잔량 표준편차 (%)
+MIN_BATTERY_LEVEL = 0.0        # 최소 배터리 잔량 (%)
+MAX_BATTERY_LEVEL = 100.0      # 최대 배터리 잔량 (%)
+
+# 주차 시간 설정
+NORMAL_PARKING_MEAN = 4.0      # 일반 차량 평균 주차 시간 (시간)
+NORMAL_PARKING_STD = 2.0       # 일반 차량 주차 시간 표준편차 (시간)
+EV_CHARGING_MEAN = 2.0         # EV 평균 충전 시간 (시간)
+EV_CHARGING_STD = 1.0          # EV 충전 시간 표준편차 (시간)
+
+# 도착 간격 설정
+ARRIVAL_MEAN = 5.0             # 평균 도착 간격 (분)
+
+# 이동 시간 설정
+MOVE_TIME_PER_CELL = 30.0      # 셀당 이동 시간 (초)
 
 # 물리적 속성 설정
 CELL_SIZE_LENGTH = 5.0  # 셀의 길이 (m)
@@ -19,15 +50,21 @@ CELL_SIZE_WIDTH = 2.0   # 셀의 너비 (m)
 VEHICLE_LENGTH = 5.0    # 차량 길이 (m)
 VEHICLE_WIDTH = 2.0     # 차량 너비 (m)
 DRIVING_SPEED = 5.0     # 주행 속도 (km/h)
-DRIVING_SPEED_MS = DRIVING_SPEED * 1000 / 3600  # 주행 속도 (m/s) = 약 1.39m/s
+DRIVING_SPEED_MS = DRIVING_SPEED * 1000 / 3600  # 주행 속도 (m/s)
 PARKING_TIME = 30.0     # 주차 소요 시간 (초)
 
 # 주차장 맵 로더 초기화 및 맵 로드
 _map_loader = ParkingMapLoader()
 PARKING_MAPS = _map_loader.load_all_maps()
 
-# 기본 맵으로 지하 1층 사용
-PARKING_MAP = PARKING_MAPS.get("B1F", [])
+# 셀 타입 정의
+CELL_ENTRANCE = "E"  # 입구/출구
+CELL_ROAD = "R"      # 도로
+CELL_PARK = "P"      # 일반 주차면
+CELL_CHARGER = "C"   # EV 충전기
+CELL_UNUSED = "N"    # 사용하지 않는 공간
+CELL_BUILDING = "B"  # 건물
+CELL_EXIT = "X"      # 출구
 
 # 층별 주차장 맵 접근을 위한 함수
 def get_floor_map(floor: str) -> List[List[str]]:
@@ -51,28 +88,6 @@ def get_all_floor_maps() -> Dict[str, List[List[str]]]:
         Dict[str, List[List[str]]]: 모든 층의 주차장 맵
     """
     return PARKING_MAPS
-
-# 지도 정의 (10×6 그리드)
-# N = 경계/미사용, E = 입구/출구, R = 도로, P = 일반 주차면, C = EV 충전소
-PARKING_MAP: List[str] = [
-    "NNNENN",
-    "PRRRRP",
-    "PRPPRP",
-    "PRPPRP",
-    "PRPPRP",
-    "PRPPRP",
-    "PRPPRC",
-    "PRPPRC",
-    "PRPPRC",
-    "PRRRRC",
-]
-
-# 셀 타입 정의
-CELL_ENTRANCE = "E"  # 입구/출구
-CELL_ROAD = "R"      # 도로
-CELL_PARK = "P"      # 일반 주차면
-CELL_CHARGER = "C"   # EV 충전기
-CELL_UNUSED = "N"    # 사용하지 않는 공간
 
 def generate_adjacent_charger_layouts(base_map: List[str]) -> List[List[str]]:
     """

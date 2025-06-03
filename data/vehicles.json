@@ -1,0 +1,4334 @@
+{
+  "vehicles": {
+    "N204": {
+      "id": "N204",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N557": {
+      "id": "N557",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N802": {
+      "id": "N802",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N773": {
+      "id": "N773",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N94": {
+      "id": "N94",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N139": {
+      "id": "N139",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N364": {
+      "id": "N364",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N340": {
+      "id": "N340",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N555": {
+      "id": "N555",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N566": {
+      "id": "N566",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N57": {
+      "id": "N57",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N272": {
+      "id": "N272",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N326": {
+      "id": "N326",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N750": {
+      "id": "N750",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N251": {
+      "id": "N251",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N23": {
+      "id": "N23",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N584": {
+      "id": "N584",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N52": {
+      "id": "N52",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N224": {
+      "id": "N224",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N544": {
+      "id": "N544",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N619": {
+      "id": "N619",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N120": {
+      "id": "N120",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N109": {
+      "id": "N109",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N13": {
+      "id": "N13",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N29": {
+      "id": "N29",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N291": {
+      "id": "N291",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N694": {
+      "id": "N694",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N495": {
+      "id": "N495",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N528": {
+      "id": "N528",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N451": {
+      "id": "N451",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N604": {
+      "id": "N604",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N516": {
+      "id": "N516",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N614": {
+      "id": "N614",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N777": {
+      "id": "N777",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N165": {
+      "id": "N165",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N656": {
+      "id": "N656",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N190": {
+      "id": "N190",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N116": {
+      "id": "N116",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N447": {
+      "id": "N447",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N394": {
+      "id": "N394",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N483": {
+      "id": "N483",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N673": {
+      "id": "N673",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N479": {
+      "id": "N479",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N50": {
+      "id": "N50",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N157": {
+      "id": "N157",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N258": {
+      "id": "N258",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N567": {
+      "id": "N567",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N419": {
+      "id": "N419",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N426": {
+      "id": "N426",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N123": {
+      "id": "N123",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N367": {
+      "id": "N367",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N88": {
+      "id": "N88",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N421": {
+      "id": "N421",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N570": {
+      "id": "N570",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N225": {
+      "id": "N225",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N747": {
+      "id": "N747",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N108": {
+      "id": "N108",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N655": {
+      "id": "N655",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N300": {
+      "id": "N300",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N677": {
+      "id": "N677",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N337": {
+      "id": "N337",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N25": {
+      "id": "N25",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N754": {
+      "id": "N754",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N235": {
+      "id": "N235",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N355": {
+      "id": "N355",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N569": {
+      "id": "N569",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N592": {
+      "id": "N592",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N103": {
+      "id": "N103",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N654": {
+      "id": "N654",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N653": {
+      "id": "N653",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N766": {
+      "id": "N766",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N142": {
+      "id": "N142",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N814": {
+      "id": "N814",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N312": {
+      "id": "N312",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "EV8": {
+      "id": "EV8",
+      "type": "EV",
+      "building": "1동"
+    },
+    "N212": {
+      "id": "N212",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N97": {
+      "id": "N97",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N465": {
+      "id": "N465",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N496": {
+      "id": "N496",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N84": {
+      "id": "N84",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N489": {
+      "id": "N489",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N356": {
+      "id": "N356",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N487": {
+      "id": "N487",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N257": {
+      "id": "N257",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N238": {
+      "id": "N238",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N646": {
+      "id": "N646",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N743": {
+      "id": "N743",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "EV36": {
+      "id": "EV36",
+      "type": "EV",
+      "building": "1동"
+    },
+    "N454": {
+      "id": "N454",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N681": {
+      "id": "N681",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N679": {
+      "id": "N679",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N275": {
+      "id": "N275",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N338": {
+      "id": "N338",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N517": {
+      "id": "N517",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N76": {
+      "id": "N76",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N133": {
+      "id": "N133",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N151": {
+      "id": "N151",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N362": {
+      "id": "N362",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N728": {
+      "id": "N728",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N783": {
+      "id": "N783",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N34": {
+      "id": "N34",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N396": {
+      "id": "N396",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N462": {
+      "id": "N462",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N27": {
+      "id": "N27",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N72": {
+      "id": "N72",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N1": {
+      "id": "N1",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N788": {
+      "id": "N788",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N231": {
+      "id": "N231",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N824": {
+      "id": "N824",
+      "type": "Normal",
+      "building": "1동"
+    },
+    "N510": {
+      "id": "N510",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "EV35": {
+      "id": "EV35",
+      "type": "EV",
+      "building": "2동"
+    },
+    "N578": {
+      "id": "N578",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N598": {
+      "id": "N598",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N740": {
+      "id": "N740",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N3": {
+      "id": "N3",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N319": {
+      "id": "N319",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N492": {
+      "id": "N492",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N556": {
+      "id": "N556",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N730": {
+      "id": "N730",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N459": {
+      "id": "N459",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "EV28": {
+      "id": "EV28",
+      "type": "EV",
+      "building": "2동"
+    },
+    "N524": {
+      "id": "N524",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N744": {
+      "id": "N744",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N73": {
+      "id": "N73",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N278": {
+      "id": "N278",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N415": {
+      "id": "N415",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N293": {
+      "id": "N293",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N764": {
+      "id": "N764",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N420": {
+      "id": "N420",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N691": {
+      "id": "N691",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N54": {
+      "id": "N54",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N527": {
+      "id": "N527",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N371": {
+      "id": "N371",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N437": {
+      "id": "N437",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N172": {
+      "id": "N172",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N183": {
+      "id": "N183",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N136": {
+      "id": "N136",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N346": {
+      "id": "N346",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N414": {
+      "id": "N414",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N166": {
+      "id": "N166",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N561": {
+      "id": "N561",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N354": {
+      "id": "N354",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N829": {
+      "id": "N829",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N119": {
+      "id": "N119",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N456": {
+      "id": "N456",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N791": {
+      "id": "N791",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N263": {
+      "id": "N263",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N478": {
+      "id": "N478",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N228": {
+      "id": "N228",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N385": {
+      "id": "N385",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "EV16": {
+      "id": "EV16",
+      "type": "EV",
+      "building": "2동"
+    },
+    "N615": {
+      "id": "N615",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N460": {
+      "id": "N460",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N363": {
+      "id": "N363",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N158": {
+      "id": "N158",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "EV18": {
+      "id": "EV18",
+      "type": "EV",
+      "building": "2동"
+    },
+    "N187": {
+      "id": "N187",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N373": {
+      "id": "N373",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N244": {
+      "id": "N244",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N612": {
+      "id": "N612",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N317": {
+      "id": "N317",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "EV20": {
+      "id": "EV20",
+      "type": "EV",
+      "building": "2동"
+    },
+    "N77": {
+      "id": "N77",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N2": {
+      "id": "N2",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N603": {
+      "id": "N603",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N733": {
+      "id": "N733",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N359": {
+      "id": "N359",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N543": {
+      "id": "N543",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N669": {
+      "id": "N669",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N217": {
+      "id": "N217",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N75": {
+      "id": "N75",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N417": {
+      "id": "N417",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N155": {
+      "id": "N155",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N645": {
+      "id": "N645",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N191": {
+      "id": "N191",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N610": {
+      "id": "N610",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N399": {
+      "id": "N399",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N721": {
+      "id": "N721",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N425": {
+      "id": "N425",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N463": {
+      "id": "N463",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N712": {
+      "id": "N712",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N769": {
+      "id": "N769",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N370": {
+      "id": "N370",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N350": {
+      "id": "N350",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N110": {
+      "id": "N110",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N458": {
+      "id": "N458",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N705": {
+      "id": "N705",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N221": {
+      "id": "N221",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N423": {
+      "id": "N423",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "EV7": {
+      "id": "EV7",
+      "type": "EV",
+      "building": "2동"
+    },
+    "N408": {
+      "id": "N408",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N575": {
+      "id": "N575",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N125": {
+      "id": "N125",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N666": {
+      "id": "N666",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N99": {
+      "id": "N99",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N145": {
+      "id": "N145",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N617": {
+      "id": "N617",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N531": {
+      "id": "N531",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N9": {
+      "id": "N9",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N471": {
+      "id": "N471",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N449": {
+      "id": "N449",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N753": {
+      "id": "N753",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N794": {
+      "id": "N794",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N803": {
+      "id": "N803",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "EV25": {
+      "id": "EV25",
+      "type": "EV",
+      "building": "2동"
+    },
+    "N140": {
+      "id": "N140",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N239": {
+      "id": "N239",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N51": {
+      "id": "N51",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N490": {
+      "id": "N490",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N35": {
+      "id": "N35",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N626": {
+      "id": "N626",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N823": {
+      "id": "N823",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N539": {
+      "id": "N539",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N637": {
+      "id": "N637",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N5": {
+      "id": "N5",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N498": {
+      "id": "N498",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N260": {
+      "id": "N260",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N818": {
+      "id": "N818",
+      "type": "Normal",
+      "building": "2동"
+    },
+    "N156": {
+      "id": "N156",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N229": {
+      "id": "N229",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N303": {
+      "id": "N303",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N797": {
+      "id": "N797",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N261": {
+      "id": "N261",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N410": {
+      "id": "N410",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N716": {
+      "id": "N716",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N126": {
+      "id": "N126",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N179": {
+      "id": "N179",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N150": {
+      "id": "N150",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N321": {
+      "id": "N321",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N375": {
+      "id": "N375",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N731": {
+      "id": "N731",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N294": {
+      "id": "N294",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N594": {
+      "id": "N594",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N381": {
+      "id": "N381",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N599": {
+      "id": "N599",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N699": {
+      "id": "N699",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N380": {
+      "id": "N380",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N782": {
+      "id": "N782",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N192": {
+      "id": "N192",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N760": {
+      "id": "N760",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N735": {
+      "id": "N735",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N314": {
+      "id": "N314",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N44": {
+      "id": "N44",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N642": {
+      "id": "N642",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N628": {
+      "id": "N628",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N184": {
+      "id": "N184",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N732": {
+      "id": "N732",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N623": {
+      "id": "N623",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N652": {
+      "id": "N652",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N253": {
+      "id": "N253",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N196": {
+      "id": "N196",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N499": {
+      "id": "N499",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N307": {
+      "id": "N307",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N185": {
+      "id": "N185",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N651": {
+      "id": "N651",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N784": {
+      "id": "N784",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N22": {
+      "id": "N22",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N758": {
+      "id": "N758",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N271": {
+      "id": "N271",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N311": {
+      "id": "N311",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N98": {
+      "id": "N98",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N330": {
+      "id": "N330",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N493": {
+      "id": "N493",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N779": {
+      "id": "N779",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N273": {
+      "id": "N273",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N413": {
+      "id": "N413",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N565": {
+      "id": "N565",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N618": {
+      "id": "N618",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N444": {
+      "id": "N444",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N821": {
+      "id": "N821",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N568": {
+      "id": "N568",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N757": {
+      "id": "N757",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N640": {
+      "id": "N640",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N160": {
+      "id": "N160",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N357": {
+      "id": "N357",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N19": {
+      "id": "N19",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N302": {
+      "id": "N302",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "EV12": {
+      "id": "EV12",
+      "type": "EV",
+      "building": "3동"
+    },
+    "N26": {
+      "id": "N26",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N193": {
+      "id": "N193",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N411": {
+      "id": "N411",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N727": {
+      "id": "N727",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "EV3": {
+      "id": "EV3",
+      "type": "EV",
+      "building": "3동"
+    },
+    "N227": {
+      "id": "N227",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N611": {
+      "id": "N611",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N533": {
+      "id": "N533",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N786": {
+      "id": "N786",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N595": {
+      "id": "N595",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N383": {
+      "id": "N383",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N117": {
+      "id": "N117",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "EV32": {
+      "id": "EV32",
+      "type": "EV",
+      "building": "3동"
+    },
+    "N85": {
+      "id": "N85",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "EV9": {
+      "id": "EV9",
+      "type": "EV",
+      "building": "3동"
+    },
+    "N635": {
+      "id": "N635",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N247": {
+      "id": "N247",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N366": {
+      "id": "N366",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N418": {
+      "id": "N418",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N310": {
+      "id": "N310",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N638": {
+      "id": "N638",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N771": {
+      "id": "N771",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N548": {
+      "id": "N548",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N162": {
+      "id": "N162",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N644": {
+      "id": "N644",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N560": {
+      "id": "N560",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N169": {
+      "id": "N169",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N318": {
+      "id": "N318",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "EV13": {
+      "id": "EV13",
+      "type": "EV",
+      "building": "3동"
+    },
+    "N708": {
+      "id": "N708",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N226": {
+      "id": "N226",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N62": {
+      "id": "N62",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N641": {
+      "id": "N641",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N633": {
+      "id": "N633",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N552": {
+      "id": "N552",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N209": {
+      "id": "N209",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N100": {
+      "id": "N100",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N429": {
+      "id": "N429",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N308": {
+      "id": "N308",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N95": {
+      "id": "N95",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N316": {
+      "id": "N316",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "EV5": {
+      "id": "EV5",
+      "type": "EV",
+      "building": "3동"
+    },
+    "N717": {
+      "id": "N717",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N339": {
+      "id": "N339",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N83": {
+      "id": "N83",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N482": {
+      "id": "N482",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N762": {
+      "id": "N762",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N674": {
+      "id": "N674",
+      "type": "Normal",
+      "building": "3동"
+    },
+    "N587": {
+      "id": "N587",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N315": {
+      "id": "N315",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N93": {
+      "id": "N93",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N15": {
+      "id": "N15",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N47": {
+      "id": "N47",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N605": {
+      "id": "N605",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N815": {
+      "id": "N815",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N537": {
+      "id": "N537",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N787": {
+      "id": "N787",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N549": {
+      "id": "N549",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N736": {
+      "id": "N736",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N301": {
+      "id": "N301",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N372": {
+      "id": "N372",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N182": {
+      "id": "N182",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N61": {
+      "id": "N61",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N92": {
+      "id": "N92",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N649": {
+      "id": "N649",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N761": {
+      "id": "N761",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N70": {
+      "id": "N70",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N474": {
+      "id": "N474",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N395": {
+      "id": "N395",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N186": {
+      "id": "N186",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N129": {
+      "id": "N129",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N393": {
+      "id": "N393",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "EV15": {
+      "id": "EV15",
+      "type": "EV",
+      "building": "4동"
+    },
+    "N796": {
+      "id": "N796",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N804": {
+      "id": "N804",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N277": {
+      "id": "N277",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N4": {
+      "id": "N4",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N684": {
+      "id": "N684",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N676": {
+      "id": "N676",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N780": {
+      "id": "N780",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N738": {
+      "id": "N738",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N46": {
+      "id": "N46",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N270": {
+      "id": "N270",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N412": {
+      "id": "N412",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N233": {
+      "id": "N233",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N480": {
+      "id": "N480",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "EV2": {
+      "id": "EV2",
+      "type": "EV",
+      "building": "4동"
+    },
+    "N115": {
+      "id": "N115",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N686": {
+      "id": "N686",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N817": {
+      "id": "N817",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N242": {
+      "id": "N242",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N177": {
+      "id": "N177",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "EV30": {
+      "id": "EV30",
+      "type": "EV",
+      "building": "4동"
+    },
+    "N682": {
+      "id": "N682",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N830": {
+      "id": "N830",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N32": {
+      "id": "N32",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N384": {
+      "id": "N384",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N37": {
+      "id": "N37",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N127": {
+      "id": "N127",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N386": {
+      "id": "N386",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N729": {
+      "id": "N729",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N141": {
+      "id": "N141",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N662": {
+      "id": "N662",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N111": {
+      "id": "N111",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N469": {
+      "id": "N469",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N473": {
+      "id": "N473",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N33": {
+      "id": "N33",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N582": {
+      "id": "N582",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N588": {
+      "id": "N588",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N629": {
+      "id": "N629",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N286": {
+      "id": "N286",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N486": {
+      "id": "N486",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N522": {
+      "id": "N522",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N164": {
+      "id": "N164",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N66": {
+      "id": "N66",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N223": {
+      "id": "N223",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N208": {
+      "id": "N208",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N723": {
+      "id": "N723",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N11": {
+      "id": "N11",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N203": {
+      "id": "N203",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N48": {
+      "id": "N48",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N703": {
+      "id": "N703",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N250": {
+      "id": "N250",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N43": {
+      "id": "N43",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N327": {
+      "id": "N327",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N807": {
+      "id": "N807",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N805": {
+      "id": "N805",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N553": {
+      "id": "N553",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N163": {
+      "id": "N163",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N198": {
+      "id": "N198",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N488": {
+      "id": "N488",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N540": {
+      "id": "N540",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N431": {
+      "id": "N431",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N288": {
+      "id": "N288",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N519": {
+      "id": "N519",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N497": {
+      "id": "N497",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N658": {
+      "id": "N658",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N778": {
+      "id": "N778",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N74": {
+      "id": "N74",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N606": {
+      "id": "N606",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N502": {
+      "id": "N502",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "EV26": {
+      "id": "EV26",
+      "type": "EV",
+      "building": "4동"
+    },
+    "N107": {
+      "id": "N107",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N232": {
+      "id": "N232",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N178": {
+      "id": "N178",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N320": {
+      "id": "N320",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N702": {
+      "id": "N702",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N298": {
+      "id": "N298",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N422": {
+      "id": "N422",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N213": {
+      "id": "N213",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N503": {
+      "id": "N503",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N580": {
+      "id": "N580",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N742": {
+      "id": "N742",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N453": {
+      "id": "N453",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N457": {
+      "id": "N457",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N195": {
+      "id": "N195",
+      "type": "Normal",
+      "building": "4동"
+    },
+    "N246": {
+      "id": "N246",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N579": {
+      "id": "N579",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N409": {
+      "id": "N409",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N390": {
+      "id": "N390",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N511": {
+      "id": "N511",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N60": {
+      "id": "N60",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N269": {
+      "id": "N269",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N309": {
+      "id": "N309",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N42": {
+      "id": "N42",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N402": {
+      "id": "N402",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N675": {
+      "id": "N675",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N798": {
+      "id": "N798",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N720": {
+      "id": "N720",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N427": {
+      "id": "N427",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N130": {
+      "id": "N130",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N542": {
+      "id": "N542",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N352": {
+      "id": "N352",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N810": {
+      "id": "N810",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N467": {
+      "id": "N467",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N661": {
+      "id": "N661",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N102": {
+      "id": "N102",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N276": {
+      "id": "N276",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N361": {
+      "id": "N361",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N351": {
+      "id": "N351",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N146": {
+      "id": "N146",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N148": {
+      "id": "N148",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N481": {
+      "id": "N481",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N267": {
+      "id": "N267",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N536": {
+      "id": "N536",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N49": {
+      "id": "N49",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N671": {
+      "id": "N671",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N504": {
+      "id": "N504",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N726": {
+      "id": "N726",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N105": {
+      "id": "N105",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N541": {
+      "id": "N541",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N715": {
+      "id": "N715",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N114": {
+      "id": "N114",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N590": {
+      "id": "N590",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N219": {
+      "id": "N219",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N639": {
+      "id": "N639",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N801": {
+      "id": "N801",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N441": {
+      "id": "N441",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N477": {
+      "id": "N477",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N683": {
+      "id": "N683",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N763": {
+      "id": "N763",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N101": {
+      "id": "N101",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N199": {
+      "id": "N199",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N71": {
+      "id": "N71",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N609": {
+      "id": "N609",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N295": {
+      "id": "N295",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N475": {
+      "id": "N475",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N86": {
+      "id": "N86",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N811": {
+      "id": "N811",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N87": {
+      "id": "N87",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N345": {
+      "id": "N345",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N206": {
+      "id": "N206",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N776": {
+      "id": "N776",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N236": {
+      "id": "N236",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N808": {
+      "id": "N808",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N597": {
+      "id": "N597",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N564": {
+      "id": "N564",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N562": {
+      "id": "N562",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N374": {
+      "id": "N374",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N613": {
+      "id": "N613",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N547": {
+      "id": "N547",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N692": {
+      "id": "N692",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N551": {
+      "id": "N551",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N392": {
+      "id": "N392",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N620": {
+      "id": "N620",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N313": {
+      "id": "N313",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N680": {
+      "id": "N680",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N792": {
+      "id": "N792",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "EV6": {
+      "id": "EV6",
+      "type": "EV",
+      "building": "5동"
+    },
+    "N149": {
+      "id": "N149",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N737": {
+      "id": "N737",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N621": {
+      "id": "N621",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N509": {
+      "id": "N509",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N170": {
+      "id": "N170",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N485": {
+      "id": "N485",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N706": {
+      "id": "N706",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N506": {
+      "id": "N506",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N558": {
+      "id": "N558",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N306": {
+      "id": "N306",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N822": {
+      "id": "N822",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N328": {
+      "id": "N328",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N252": {
+      "id": "N252",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N650": {
+      "id": "N650",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N725": {
+      "id": "N725",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N403": {
+      "id": "N403",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N322": {
+      "id": "N322",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N813": {
+      "id": "N813",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "EV10": {
+      "id": "EV10",
+      "type": "EV",
+      "building": "5동"
+    },
+    "N104": {
+      "id": "N104",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N739": {
+      "id": "N739",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N828": {
+      "id": "N828",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N407": {
+      "id": "N407",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N59": {
+      "id": "N59",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "EV17": {
+      "id": "EV17",
+      "type": "EV",
+      "building": "5동"
+    },
+    "N494": {
+      "id": "N494",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N180": {
+      "id": "N180",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N79": {
+      "id": "N79",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N161": {
+      "id": "N161",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "EV23": {
+      "id": "EV23",
+      "type": "EV",
+      "building": "5동"
+    },
+    "N790": {
+      "id": "N790",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N336": {
+      "id": "N336",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N550": {
+      "id": "N550",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N329": {
+      "id": "N329",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N281": {
+      "id": "N281",
+      "type": "Normal",
+      "building": "5동"
+    },
+    "N508": {
+      "id": "N508",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N90": {
+      "id": "N90",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N505": {
+      "id": "N505",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N211": {
+      "id": "N211",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N672": {
+      "id": "N672",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N827": {
+      "id": "N827",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N660": {
+      "id": "N660",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N81": {
+      "id": "N81",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N287": {
+      "id": "N287",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N746": {
+      "id": "N746",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N243": {
+      "id": "N243",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N631": {
+      "id": "N631",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N450": {
+      "id": "N450",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N16": {
+      "id": "N16",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N663": {
+      "id": "N663",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N748": {
+      "id": "N748",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N799": {
+      "id": "N799",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N240": {
+      "id": "N240",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N436": {
+      "id": "N436",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N333": {
+      "id": "N333",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N530": {
+      "id": "N530",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N304": {
+      "id": "N304",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N601": {
+      "id": "N601",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N756": {
+      "id": "N756",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N572": {
+      "id": "N572",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "EV29": {
+      "id": "EV29",
+      "type": "EV",
+      "building": "6동"
+    },
+    "N389": {
+      "id": "N389",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N279": {
+      "id": "N279",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N400": {
+      "id": "N400",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N290": {
+      "id": "N290",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "EV19": {
+      "id": "EV19",
+      "type": "EV",
+      "building": "6동"
+    },
+    "N82": {
+      "id": "N82",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N659": {
+      "id": "N659",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N585": {
+      "id": "N585",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N700": {
+      "id": "N700",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N8": {
+      "id": "N8",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N424": {
+      "id": "N424",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N435": {
+      "id": "N435",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N809": {
+      "id": "N809",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N18": {
+      "id": "N18",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N241": {
+      "id": "N241",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N368": {
+      "id": "N368",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N534": {
+      "id": "N534",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N701": {
+      "id": "N701",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N819": {
+      "id": "N819",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N452": {
+      "id": "N452",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N749": {
+      "id": "N749",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N685": {
+      "id": "N685",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N816": {
+      "id": "N816",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N501": {
+      "id": "N501",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N348": {
+      "id": "N348",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N770": {
+      "id": "N770",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N825": {
+      "id": "N825",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N698": {
+      "id": "N698",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N113": {
+      "id": "N113",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N455": {
+      "id": "N455",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N484": {
+      "id": "N484",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N344": {
+      "id": "N344",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N670": {
+      "id": "N670",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N205": {
+      "id": "N205",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N630": {
+      "id": "N630",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N520": {
+      "id": "N520",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N292": {
+      "id": "N292",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N171": {
+      "id": "N171",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N262": {
+      "id": "N262",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N132": {
+      "id": "N132",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N358": {
+      "id": "N358",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N696": {
+      "id": "N696",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N323": {
+      "id": "N323",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N135": {
+      "id": "N135",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N722": {
+      "id": "N722",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "EV31": {
+      "id": "EV31",
+      "type": "EV",
+      "building": "6동"
+    },
+    "N176": {
+      "id": "N176",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N268": {
+      "id": "N268",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N39": {
+      "id": "N39",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N332": {
+      "id": "N332",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N688": {
+      "id": "N688",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N781": {
+      "id": "N781",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N137": {
+      "id": "N137",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N331": {
+      "id": "N331",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N67": {
+      "id": "N67",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N693": {
+      "id": "N693",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N118": {
+      "id": "N118",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N124": {
+      "id": "N124",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N210": {
+      "id": "N210",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N91": {
+      "id": "N91",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N500": {
+      "id": "N500",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N718": {
+      "id": "N718",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N134": {
+      "id": "N134",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N296": {
+      "id": "N296",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N468": {
+      "id": "N468",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N589": {
+      "id": "N589",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N667": {
+      "id": "N667",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N741": {
+      "id": "N741",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N767": {
+      "id": "N767",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N202": {
+      "id": "N202",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N657": {
+      "id": "N657",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N432": {
+      "id": "N432",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N222": {
+      "id": "N222",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N752": {
+      "id": "N752",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N80": {
+      "id": "N80",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N491": {
+      "id": "N491",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N248": {
+      "id": "N248",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N24": {
+      "id": "N24",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N507": {
+      "id": "N507",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N704": {
+      "id": "N704",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N532": {
+      "id": "N532",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N470": {
+      "id": "N470",
+      "type": "Normal",
+      "building": "6동"
+    },
+    "N745": {
+      "id": "N745",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N664": {
+      "id": "N664",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N40": {
+      "id": "N40",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N274": {
+      "id": "N274",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N159": {
+      "id": "N159",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N215": {
+      "id": "N215",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N573": {
+      "id": "N573",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N21": {
+      "id": "N21",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N755": {
+      "id": "N755",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N586": {
+      "id": "N586",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N678": {
+      "id": "N678",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N289": {
+      "id": "N289",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N69": {
+      "id": "N69",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N404": {
+      "id": "N404",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "EV1": {
+      "id": "EV1",
+      "type": "EV",
+      "building": "7동"
+    },
+    "N197": {
+      "id": "N197",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N627": {
+      "id": "N627",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N513": {
+      "id": "N513",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N405": {
+      "id": "N405",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N382": {
+      "id": "N382",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N256": {
+      "id": "N256",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N812": {
+      "id": "N812",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N765": {
+      "id": "N765",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N647": {
+      "id": "N647",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N525": {
+      "id": "N525",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "EV34": {
+      "id": "EV34",
+      "type": "EV",
+      "building": "7동"
+    },
+    "N45": {
+      "id": "N45",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N41": {
+      "id": "N41",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N17": {
+      "id": "N17",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N174": {
+      "id": "N174",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N789": {
+      "id": "N789",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N112": {
+      "id": "N112",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N282": {
+      "id": "N282",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N577": {
+      "id": "N577",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N398": {
+      "id": "N398",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N689": {
+      "id": "N689",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N538": {
+      "id": "N538",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N325": {
+      "id": "N325",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N65": {
+      "id": "N65",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N353": {
+      "id": "N353",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N826": {
+      "id": "N826",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N416": {
+      "id": "N416",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N334": {
+      "id": "N334",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N31": {
+      "id": "N31",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "EV21": {
+      "id": "EV21",
+      "type": "EV",
+      "building": "7동"
+    },
+    "EV27": {
+      "id": "EV27",
+      "type": "EV",
+      "building": "7동"
+    },
+    "N466": {
+      "id": "N466",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N14": {
+      "id": "N14",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N255": {
+      "id": "N255",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N200": {
+      "id": "N200",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N714": {
+      "id": "N714",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N234": {
+      "id": "N234",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N401": {
+      "id": "N401",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N28": {
+      "id": "N28",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N63": {
+      "id": "N63",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N153": {
+      "id": "N153",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N800": {
+      "id": "N800",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N759": {
+      "id": "N759",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N443": {
+      "id": "N443",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N78": {
+      "id": "N78",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N379": {
+      "id": "N379",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N349": {
+      "id": "N349",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N173": {
+      "id": "N173",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N512": {
+      "id": "N512",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N554": {
+      "id": "N554",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N7": {
+      "id": "N7",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N430": {
+      "id": "N430",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N188": {
+      "id": "N188",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "EV22": {
+      "id": "EV22",
+      "type": "EV",
+      "building": "7동"
+    },
+    "N602": {
+      "id": "N602",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N297": {
+      "id": "N297",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N122": {
+      "id": "N122",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N440": {
+      "id": "N440",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N607": {
+      "id": "N607",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N559": {
+      "id": "N559",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N521": {
+      "id": "N521",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N593": {
+      "id": "N593",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N181": {
+      "id": "N181",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N12": {
+      "id": "N12",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N138": {
+      "id": "N138",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "EV24": {
+      "id": "EV24",
+      "type": "EV",
+      "building": "7동"
+    },
+    "N266": {
+      "id": "N266",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N284": {
+      "id": "N284",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N643": {
+      "id": "N643",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N576": {
+      "id": "N576",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N545": {
+      "id": "N545",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N793": {
+      "id": "N793",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N751": {
+      "id": "N751",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N795": {
+      "id": "N795",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N697": {
+      "id": "N697",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N774": {
+      "id": "N774",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N64": {
+      "id": "N64",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N201": {
+      "id": "N201",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N335": {
+      "id": "N335",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N6": {
+      "id": "N6",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N724": {
+      "id": "N724",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N341": {
+      "id": "N341",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N143": {
+      "id": "N143",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N690": {
+      "id": "N690",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "EV4": {
+      "id": "EV4",
+      "type": "EV",
+      "building": "7동"
+    },
+    "N152": {
+      "id": "N152",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N58": {
+      "id": "N58",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "EV14": {
+      "id": "EV14",
+      "type": "EV",
+      "building": "7동"
+    },
+    "N343": {
+      "id": "N343",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N546": {
+      "id": "N546",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N254": {
+      "id": "N254",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N600": {
+      "id": "N600",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N591": {
+      "id": "N591",
+      "type": "Normal",
+      "building": "7동"
+    },
+    "N768": {
+      "id": "N768",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N514": {
+      "id": "N514",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N397": {
+      "id": "N397",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N154": {
+      "id": "N154",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N581": {
+      "id": "N581",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N625": {
+      "id": "N625",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N775": {
+      "id": "N775",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N526": {
+      "id": "N526",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N622": {
+      "id": "N622",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N388": {
+      "id": "N388",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N121": {
+      "id": "N121",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N461": {
+      "id": "N461",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N433": {
+      "id": "N433",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N53": {
+      "id": "N53",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N36": {
+      "id": "N36",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N230": {
+      "id": "N230",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N30": {
+      "id": "N30",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N106": {
+      "id": "N106",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N305": {
+      "id": "N305",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N406": {
+      "id": "N406",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N515": {
+      "id": "N515",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N632": {
+      "id": "N632",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N68": {
+      "id": "N68",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N434": {
+      "id": "N434",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N237": {
+      "id": "N237",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N189": {
+      "id": "N189",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N707": {
+      "id": "N707",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N168": {
+      "id": "N168",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N175": {
+      "id": "N175",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N365": {
+      "id": "N365",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N89": {
+      "id": "N89",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N342": {
+      "id": "N342",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N347": {
+      "id": "N347",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N369": {
+      "id": "N369",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "EV11": {
+      "id": "EV11",
+      "type": "EV",
+      "building": "8동"
+    },
+    "N218": {
+      "id": "N218",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N687": {
+      "id": "N687",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "EV33": {
+      "id": "EV33",
+      "type": "EV",
+      "building": "8동"
+    },
+    "N377": {
+      "id": "N377",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N38": {
+      "id": "N38",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N56": {
+      "id": "N56",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N596": {
+      "id": "N596",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N476": {
+      "id": "N476",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N147": {
+      "id": "N147",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N376": {
+      "id": "N376",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N535": {
+      "id": "N535",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N711": {
+      "id": "N711",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N563": {
+      "id": "N563",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N20": {
+      "id": "N20",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N529": {
+      "id": "N529",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N616": {
+      "id": "N616",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N710": {
+      "id": "N710",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N665": {
+      "id": "N665",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N648": {
+      "id": "N648",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N448": {
+      "id": "N448",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N806": {
+      "id": "N806",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N719": {
+      "id": "N719",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N299": {
+      "id": "N299",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N695": {
+      "id": "N695",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N785": {
+      "id": "N785",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N442": {
+      "id": "N442",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N167": {
+      "id": "N167",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N772": {
+      "id": "N772",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N220": {
+      "id": "N220",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N96": {
+      "id": "N96",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N207": {
+      "id": "N207",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N518": {
+      "id": "N518",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N214": {
+      "id": "N214",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N574": {
+      "id": "N574",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N820": {
+      "id": "N820",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N391": {
+      "id": "N391",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N464": {
+      "id": "N464",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N523": {
+      "id": "N523",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N583": {
+      "id": "N583",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N285": {
+      "id": "N285",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N439": {
+      "id": "N439",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N624": {
+      "id": "N624",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N324": {
+      "id": "N324",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N128": {
+      "id": "N128",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N245": {
+      "id": "N245",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N144": {
+      "id": "N144",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N668": {
+      "id": "N668",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N55": {
+      "id": "N55",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N571": {
+      "id": "N571",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N608": {
+      "id": "N608",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N636": {
+      "id": "N636",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N10": {
+      "id": "N10",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N378": {
+      "id": "N378",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N216": {
+      "id": "N216",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N283": {
+      "id": "N283",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N472": {
+      "id": "N472",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N446": {
+      "id": "N446",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N259": {
+      "id": "N259",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N265": {
+      "id": "N265",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N194": {
+      "id": "N194",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N387": {
+      "id": "N387",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N713": {
+      "id": "N713",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N280": {
+      "id": "N280",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N445": {
+      "id": "N445",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N438": {
+      "id": "N438",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N428": {
+      "id": "N428",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N709": {
+      "id": "N709",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N131": {
+      "id": "N131",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N264": {
+      "id": "N264",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N634": {
+      "id": "N634",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N249": {
+      "id": "N249",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N360": {
+      "id": "N360",
+      "type": "Normal",
+      "building": "8동"
+    },
+    "N734": {
+      "id": "N734",
+      "type": "Normal",
+      "building": "8동"
+    }
+  }
+}
