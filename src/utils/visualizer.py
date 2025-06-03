@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Tuple, Optional
 import pandas as pd
 import platform
 
-from src.config import PARKING_MAP
+from src.config import PARKING_MAPS
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -38,19 +38,12 @@ class ParkingVisualizer:
         'M': 'plum'         # 이동 중인 도로 점유
     }
     
-    def __init__(self, map_data: List[str] = PARKING_MAP):
+    def __init__(self):
         """
         시각화 도구를 초기화합니다.
-        
-        Args:
-            map_data: 주차장 맵 데이터
         """
-        self.map_data = map_data
-        self.rows = len(map_data)
-        self.cols = len(map_data[0])
-        
-        # 시각화를 위한 그리드 데이터 생성
-        self.grid = np.array([[c for c in row] for row in map_data])
+        self.grid = np.array([list(row) for row in PARKING_MAPS])
+        self.rows, self.cols = self.grid.shape
     
     def update_grid(self, occupied_spots: List[Tuple[int, int]], 
                     charging_spots: List[Tuple[int, int]],
@@ -64,7 +57,7 @@ class ParkingVisualizer:
             moving_spots: 이동 중인 도로 셀 좌표 목록 [(r,c), ...]
         """
         # 그리드 초기화
-        self.grid = np.array([[c for c in row] for row in self.map_data])
+        self.grid = np.array([[c for c in row] for row in PARKING_MAPS])
         
         # 점유된 일반 주차면 표시
         for r, c in occupied_spots:
@@ -186,7 +179,7 @@ class ParkingVisualizer:
             
             # 이벤트에 따라 주차장 상태 업데이트
             if event == 'park_start':
-                cell_type = self.map_data[pos[0]][pos[1]]
+                cell_type = PARKING_MAPS[pos[0]][pos[1]]
                 if cell_type == 'P':
                     occupied_spots.add(pos)
                 elif cell_type == 'C':

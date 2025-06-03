@@ -88,9 +88,9 @@ def calculate_parking_time(start_pos: Tuple[int, int], end_pos: Tuple[int, int])
     Returns:
         float: 주차 시간 (초)
     """
-    # 맨해튼 거리당 30초로 계산
+    # 맨해튼 거리당 3초로 계산
     distance = calculate_manhattan_distance(start_pos, end_pos)
-    return distance * 30.0
+    return distance * 3
 
 def find_nearest_available_spot(
     current_pos: Tuple[int, int],

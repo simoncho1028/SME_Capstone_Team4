@@ -52,7 +52,7 @@ class SimulationLogger:
             self.charge_graph_path = charge_path
     
     def add_event(self, vehicle_id: int, vehicle_type: str, event: str, 
-                 time: float, pos: tuple, battery: Optional[float] = None) -> None:
+                 time: float, pos: Optional[tuple] = None, battery: Optional[float] = None) -> None:
         """
         시뮬레이션 이벤트를 로그에 추가합니다.
         
@@ -61,7 +61,7 @@ class SimulationLogger:
             vehicle_type: 차량 타입 ("normal" 또는 "ev")
             event: 이벤트 유형 (arrive, park_start, charge_start, charge_update, charge_end, depart, move)
             time: 이벤트 발생 시간 (시뮬레이션 시간, 초 단위)
-            pos: 이벤트 발생 위치 (r, c)
+            pos: 이벤트 발생 위치 (r, c), 선택적
             battery: 전기차의 배터리 잔량 (0-100%)
         """
         entry: LogEntry = {
@@ -69,8 +69,8 @@ class SimulationLogger:
             "type": vehicle_type,
             "event": event,
             "time": time,
-            "pos_r": pos[0],
-            "pos_c": pos[1],
+            "pos_r": pos[0] if pos else None,
+            "pos_c": pos[1] if pos else None,
             "battery": battery
         }
         self.log.append(entry)

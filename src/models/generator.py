@@ -4,14 +4,17 @@
 import simpy
 import random
 import numpy as np
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Dict
+from pathlib import Path
+import json
 
 from src.config import NUM_NORMAL, NUM_EV
 from src.utils.helpers import (
-    sample_interarrival, sample_time_dependent_interarrival
+    sample_interarrival, sample_time_dependent_interarrival, sample_interarrival_time
 )
 from src.utils.logger import SimulationLogger
 from src.models.vehicle import Vehicle
+from src.utils.charger_allocator import ChargerAllocator
 
 
 class VehicleGenerator:
@@ -23,7 +26,9 @@ class VehicleGenerator:
                  env: simpy.Environment, 
                  parking_res: simpy.Resource, 
                  charger_res: simpy.Resource,
-                 logger: SimulationLogger):
+                 logger: SimulationLogger,
+                 charger_allocator: ChargerAllocator,
+                 data_path: str = "data"):
         """
         차량 생성기를 초기화합니다.
         
@@ -32,14 +37,34 @@ class VehicleGenerator:
             parking_res: 일반 주차면 리소스
             charger_res: EV 충전소 리소스
             logger: 이벤트 로깅을 위한 로거 객체
+            charger_allocator: 충전소 위치 관리자
+            data_path: 차량 데이터 파일 경로
         """
         self.env = env
         self.parking_res = parking_res
         self.charger_res = charger_res
         self.logger = logger
+        self.charger_allocator = charger_allocator
+        self.data_path = Path(data_path)
         
-        # 차량 ID 초기화
-        self.next_id = 0
+        # 차량 데이터 로드
+        self.vehicles = self._load_vehicles()
+        self.vehicle_ids = list(self.vehicles.keys())
+        random.shuffle(self.vehicle_ids)  # 무작위 순서로 차량 생성
+    
+    def _load_vehicles(self) -> Dict:
+        """
+        차량 데이터를 JSON 파일에서 로드합니다.
+        
+        Returns:
+            Dict: 차량 정보 딕셔너리
+        """
+        vehicles_file = self.data_path / "vehicles.json"
+        if not vehicles_file.exists():
+            raise FileNotFoundError(f"차량 데이터 파일을 찾을 수 없습니다: {vehicles_file}")
+        
+        with open(vehicles_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
     
     def generate_vehicle(self, vtype: str) -> None:
         """
@@ -54,7 +79,8 @@ class VehicleGenerator:
             env=self.env,
             parking_res=self.parking_res,
             charger_res=self.charger_res,
-            logger=self.logger
+            logger=self.logger,
+            charger_allocator=self.charger_allocator
         )
         
         self.next_id += 1
@@ -86,10 +112,12 @@ class CustomVehicleGenerator(VehicleGenerator):
                  parking_res: simpy.Resource, 
                  charger_res: simpy.Resource,
                  logger: SimulationLogger,
+                 charger_allocator: ChargerAllocator,
                  sim_time: float,
                  interarrival_func: Optional[Callable[[], float]] = None,
                  normal_count: int = NUM_NORMAL,
-                 ev_count: int = NUM_EV):
+                 ev_count: int = NUM_EV,
+                 data_path: str = "data"):
         """
         사용자 정의 차량 생성기를 초기화합니다.
         
@@ -98,12 +126,14 @@ class CustomVehicleGenerator(VehicleGenerator):
             parking_res: 일반 주차면 리소스
             charger_res: EV 충전소 리소스
             logger: 이벤트 로깅을 위한 로거 객체
+            charger_allocator: 충전소 위치 관리자
             sim_time: 전체 시뮬레이션 시간 (초)
             interarrival_func: 도착 시간 간격을 샘플링하는 함수 (이제 사용되지 않음)
             normal_count: 생성할 일반 차량 수
             ev_count: 생성할 전기차 수
+            data_path: 차량 데이터 파일 경로
         """
-        super().__init__(env, parking_res, charger_res, logger)
+        super().__init__(env, parking_res, charger_res, logger, charger_allocator, data_path)
         self.sim_time = sim_time
         self.normal_count = normal_count
         self.ev_count = ev_count

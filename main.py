@@ -16,6 +16,7 @@ import matplotlib as mpl
 import os
 import platform
 from typing import List
+import simpy
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -28,11 +29,14 @@ else:  # Linux
 mpl.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 
 from src.config import (
-    SEED, SIM_TIME, PARKING_MAP,  # PARKING_MAP 추가
-    generate_adjacent_charger_layouts  # 새로 추가한 함수도 import
+    SEED, SIM_TIME, PARKING_MAPS,
+    generate_adjacent_charger_layouts
 )
-from src.models.simulation import ParkingSimulation, CustomParkingSimulation
+from src.simulation.parking_simulation import ParkingSimulation
+from src.models.parking_manager import ParkingManager
+from src.utils.logger import SimulationLogger
 from src.utils.visualizer import ParkingVisualizer
+from src.models.vehicle import Vehicle
 
 
 def parse_arguments():
@@ -116,6 +120,33 @@ def parse_arguments():
         "--visualize", 
         action="store_true",
         help="시뮬레이션 결과 시각화"
+    )
+    
+    viz_group.add_argument(
+        "--visualize-layout",
+        action="store_true",
+        help="주차장 레이아웃 시각화"
+    )
+    
+    viz_group.add_argument(
+        "--layout-dpi",
+        type=int,
+        default=100,
+        help="레이아웃 이미지 해상도 (DPI)"
+    )
+    
+    viz_group.add_argument(
+        "--layout-cell-size",
+        type=float,
+        default=1.0,
+        help="레이아웃 셀 크기"
+    )
+    
+    viz_group.add_argument(
+        "--layout-font-size",
+        type=int,
+        default=10,
+        help="레이아웃 폰트 크기"
     )
     
     viz_group.add_argument(
@@ -261,10 +292,10 @@ def optimize_adjacent_chargers(args):
     """
     인접한 2개의 충전소에 대한 최적의 배치를 찾습니다.
     """
-    global PARKING_MAP
+    global PARKING_MAPS
     
     # 기본 맵에서 충전소 제거 (모든 'C'를 'P'로 변경)
-    base_map = [row.replace('C', 'P') for row in PARKING_MAP]
+    base_map = [row.replace('C', 'P') for row in PARKING_MAPS]
     
     # 가능한 모든 인접 충전소 배치 생성
     layouts = generate_adjacent_charger_layouts(base_map)
@@ -284,12 +315,12 @@ def optimize_adjacent_chargers(args):
     for i, layout in enumerate(layouts, 1):
         print(f"\r[{i}/{len(layouts)}] {i/len(layouts)*100:.1f}% 완료", end="")
         
-        # 임시로 PARKING_MAP 수정
-        original_map = PARKING_MAP
-        PARKING_MAP = layout
+        # 임시로 PARKING_MAPS 수정
+        original_map = PARKING_MAPS
+        PARKING_MAPS = layout
         
         # 시뮬레이션 실행
-        sim = CustomParkingSimulation(
+        sim = ParkingSimulation(
             parking_capacity=args.parking_capacity - 2,  # 충전소 2개만큼 감소
             charger_capacity=2,
             sim_time=args.time,
@@ -324,7 +355,7 @@ def optimize_adjacent_chargers(args):
             }
         
         # 원래 맵으로 복구
-        PARKING_MAP = original_map
+        PARKING_MAPS = original_map
     
     print("\n\n[INFO] 시뮬레이션 완료!")
     return best_layout, best_metrics
@@ -334,7 +365,7 @@ def main():
     """
     메인 실행 함수
     """
-    global PARKING_MAP
+    global PARKING_MAPS
     
     # 인자 파싱
     args = parse_arguments()
@@ -374,7 +405,7 @@ def main():
             for trial in range(args.optimization_trials):
                 print(f"  - 시도 {trial + 1}/{args.optimization_trials}")
                 
-                sim = CustomParkingSimulation(
+                sim = ParkingSimulation(
                     parking_capacity=args.total_capacity - charger_count,
                     charger_capacity=charger_count,
                     sim_time=args.time,
@@ -438,15 +469,44 @@ def main():
     print(f"  - 충전소: {args.ev_chargers}개")
     print(f"  - 총 주차면: {args.total_capacity}면")
     
-    sim = CustomParkingSimulation(
-        parking_capacity=args.total_capacity - args.ev_chargers,
-        charger_capacity=args.ev_chargers,
-        sim_time=args.time,
-        random_seed=args.seed,
-        normal_count=args.normal,
-        ev_count=args.ev
+    # SimPy 환경 초기화
+    env = simpy.Environment()
+    
+    # 주차장 관리자 초기화
+    parking_manager = ParkingManager()
+    
+    # 로거 초기화
+    logger = SimulationLogger()
+    
+    # 시뮬레이션 객체 생성
+    sim = ParkingSimulation(
+        env=env,
+        parking_manager=parking_manager,
+        logger=logger
     )
-    sim.run()
+    
+    # 차량 생성
+    for i in range(args.normal):
+        vehicle = Vehicle(
+            vehicle_id=f"normal_{i}",
+            vehicle_type="normal",
+            arrival_time=random.uniform(0, args.time)
+        )
+        sim.active_vehicles[vehicle.vehicle_id] = vehicle
+        env.process(vehicle.run(sim))
+    
+    for i in range(args.ev):
+        vehicle = Vehicle(
+            vehicle_id=f"ev_{i}",
+            vehicle_type="ev",
+            arrival_time=random.uniform(0, args.time),
+            battery_level=random.uniform(20, 80)
+        )
+        sim.active_vehicles[vehicle.vehicle_id] = vehicle
+        env.process(vehicle.run(sim))
+    
+    # 시뮬레이션 실행
+    sim.run(until=args.time)
     
     # 결과 요약 출력
     print("\n=== 시뮬레이션 결과 ===")
