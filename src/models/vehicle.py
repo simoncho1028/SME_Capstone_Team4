@@ -3,6 +3,7 @@
 """
 from typing import Optional
 from dataclasses import dataclass
+from src.utils.helpers import sample_parking_duration
 
 @dataclass
 class Vehicle:
@@ -13,7 +14,7 @@ class Vehicle:
     building_id: str  # 차량이 속한 동 번호 (예: "1동")
     state: str = "outside"  # "outside", "parked", "double_parked"
     battery_level: Optional[float] = None  # 전기차의 경우 배터리 잔량 (0-100)
-    parking_duration: float = 3600.0  # 주차 예정 시간 (초)
+    parking_duration: Optional[float] = None  # 주차 예정 시간 (초)
 
     def __post_init__(self):
         """초기화 이후 추가 설정"""
@@ -25,6 +26,10 @@ class Vehicle:
         
         if self.state not in ["outside", "parked", "double_parked"]:
             raise ValueError("Invalid vehicle state")
+            
+        # 주차 시간이 설정되지 않은 경우, 도착 시각에 따른 감마 분포에서 샘플링
+        if self.parking_duration is None:
+            self.parking_duration = sample_parking_duration(self.arrival_time)
 
     def run(self, sim) -> None:
         """차량의 주차장 이용 프로세스"""

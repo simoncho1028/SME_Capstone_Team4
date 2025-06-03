@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from datetime import datetime
 import platform
+import numpy as np
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -204,86 +205,221 @@ class SimulationLogger:
                     print(f"평균 배터리 충전량: {avg_gain:.2f}%")
     
     def generate_plots(self) -> None:
-        """시뮬레이션 결과를 시각화하는 그래프를 생성합니다."""
+        """시뮬레이션 결과를 비즈니스 관점에서 시각화하는 그래프를 생성합니다."""
         df = self.get_dataframe()
+        
+        if df.empty:
+            print("[WARNING] 데이터가 없어 그래프를 생성할 수 없습니다.")
+            return
         
         # 시간 단위로 집계
         df['hour'] = df.time / 3600
         
-        # 1. 시간대별 차량 도착 그래프
-        plt.figure(figsize=(10, 6))
+        # 1. 주차장 운영 현황 종합 분석 (4개 차트)
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+        fig.suptitle('주차장 운영 현황 종합 분석', fontsize=16, fontweight='bold')
+        
+        # 1-1. 시간대별 차량 도착 패턴 (개선)
         arrivals = df[df.event == "arrive"].copy()
         arrivals['hour_bin'] = arrivals.hour.apply(lambda x: int(x))
-        hour_counts = arrivals.groupby('hour_bin').size()
         
-        plt.bar(hour_counts.index, hour_counts.values)
-        plt.title('시간대별 차량 도착 수')
-        plt.xlabel('시간(시)')
-        plt.ylabel('도착 차량 수')
-        plt.savefig(self.arrivals_graph_path)
+        # 차량 유형별로 구분
+        ev_arrivals = arrivals[arrivals.type == "ev"].groupby('hour_bin').size()
+        normal_arrivals = arrivals[arrivals.type == "normal"].groupby('hour_bin').size()
         
-        # 2. 차량 유형별 주차 시간 분포
-        plt.figure(figsize=(10, 6))
+        # 모든 시간대 확보 (0-23시)
+        all_hours = range(24)
+        ev_counts = [ev_arrivals.get(h, 0) for h in all_hours]
+        normal_counts = [normal_arrivals.get(h, 0) for h in all_hours]
         
-        parking_times = []
-        for v_id in df.id.unique():
-            v_df = df[df.id == v_id]
-            arrive = v_df[v_df.event == "arrive"]
-            depart = v_df[v_df.event == "depart"]
-            
-            if not arrive.empty and not depart.empty:
-                arrive_time = arrive.iloc[0].time
-                depart_time = depart.iloc[0].time
-                duration = (depart_time - arrive_time) / 3600  # 시간 단위
-                
-                vehicle_type = arrive.iloc[0].type
-                parking_times.append({
-                    "id": v_id,
-                    "type": vehicle_type,
-                    "duration": duration
-                })
+        ax1.bar(all_hours, normal_counts, label='일반 차량', color='skyblue', alpha=0.8)
+        ax1.bar(all_hours, ev_counts, bottom=normal_counts, label='전기차', color='orange', alpha=0.8)
+        ax1.set_title('시간대별 차량 도착 패턴', fontweight='bold')
+        ax1.set_xlabel('시간(시)')
+        ax1.set_ylabel('도착 차량 수')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        ax1.set_xticks(range(0, 24, 2))
         
-        if parking_times:
-            parking_df = pd.DataFrame(parking_times)
-            
-            # 히스토그램
-            plt.hist(
-                [
-                    parking_df[parking_df.type == "normal"].duration,
-                    parking_df[parking_df.type == "ev"].duration
-                ],
-                bins=10,
-                label=["일반 차량", "전기차"]
-            )
-            plt.title('차량 유형별 주차 시간 분포')
-            plt.xlabel('주차 시간 (시)')
-            plt.ylabel('차량 수')
-            plt.legend()
-            plt.savefig(self.parking_duration_graph_path)
-        
-        # 3. 전기차 충전 패턴 분석
+        # 1-2. 충전소 이용률 분석
         charge_df = self.get_charge_dataframe()
         if not charge_df.empty:
-            plt.figure(figsize=(10, 6))
+            charge_usage = charge_df[charge_df.event == "charge_start"].copy()
+            charge_usage['hour_bin'] = charge_usage.hour.apply(lambda x: int(x))
+            charge_hourly = charge_usage.groupby('hour_bin').size()
             
-            # 각 전기차별 충전 패턴 시각화
-            for vehicle_id in charge_df.id.unique():
-                v_data = charge_df[charge_df.id == vehicle_id]
-                v_data = v_data.sort_values('time')
-                if 'battery' in v_data.columns and not v_data.battery.isna().all():
-                    plt.plot(v_data.time / 60, v_data.battery, marker='o', 
-                            label=f'EV #{vehicle_id}')
+            hourly_usage = [charge_hourly.get(h, 0) for h in all_hours]
+            ax2.plot(all_hours, hourly_usage, marker='o', linewidth=2, markersize=6, color='green')
+            ax2.fill_between(all_hours, hourly_usage, alpha=0.3, color='green')
+            ax2.set_title('시간대별 충전소 이용률', fontweight='bold')
+            ax2.set_xlabel('시간(시)')
+            ax2.set_ylabel('충전 시작 횟수')
+            ax2.grid(True, alpha=0.3)
+            ax2.set_xticks(range(0, 24, 2))
+        else:
+            ax2.text(0.5, 0.5, '충전 데이터 없음', ha='center', va='center', transform=ax2.transAxes)
+            ax2.set_title('시간대별 충전소 이용률', fontweight='bold')
+        
+        # 1-3. 주차장 점유율 시간대별 분석
+        parking_occupancy = []
+        for hour in all_hours:
+            start_time = hour * 3600
+            parked_at_hour = 0
+            for vehicle_id in df.id.unique():
+                vehicle_events = df[df.id == vehicle_id].sort_values('time')
+                park_events = vehicle_events[vehicle_events.event.isin(['park_success', 'depart'])]
+                
+                if len(park_events) >= 1:
+                    park_time = park_events.iloc[0].time if park_events.iloc[0].event == 'park_success' else None
+                    depart_time = park_events[park_events.event == 'depart'].iloc[0].time if len(park_events[park_events.event == 'depart']) > 0 else float('inf')
+                    
+                    if park_time and park_time <= start_time and depart_time > start_time:
+                        parked_at_hour += 1
             
-            plt.title('전기차 충전 패턴')
+            parking_occupancy.append(parked_at_hour)
+        
+        ax3.plot(all_hours, parking_occupancy, marker='s', linewidth=2, markersize=6, color='red')
+        ax3.fill_between(all_hours, parking_occupancy, alpha=0.3, color='red')
+        ax3.set_title('시간대별 주차장 점유율', fontweight='bold')
+        ax3.set_xlabel('시간(시)')
+        ax3.set_ylabel('점유 차량 수')
+        ax3.grid(True, alpha=0.3)
+        ax3.set_xticks(range(0, 24, 2))
+        
+        # 1-4. 주차 성공률 및 효율성 지표
+        total_arrivals = len(df[df.event == "arrive"])
+        successful_parks = len(df[df.event == "park_success"])
+        failed_parks = len(df[df.event == "park_fail"])
+        
+        if total_arrivals > 0:
+            success_rate = (successful_parks / total_arrivals) * 100
+            fail_rate = (failed_parks / total_arrivals) * 100
+            
+            metrics = ['주차 성공률', '주차 실패율']
+            values = [success_rate, fail_rate]
+            colors = ['#2ECC71', '#E74C3C']
+            
+            bars = ax4.bar(metrics, values, color=colors, alpha=0.8)
+            ax4.set_title('주차장 운영 효율성 지표', fontweight='bold')
+            ax4.set_ylabel('비율 (%)')
+            ax4.set_ylim(0, 100)
+            
+            for bar, value in zip(bars, values):
+                height = bar.get_height()
+                ax4.text(bar.get_x() + bar.get_width()/2., height + 1, f'{value:.1f}%', 
+                        ha='center', va='bottom', fontweight='bold')
+        else:
+            ax4.text(0.5, 0.5, '주차 데이터 없음', ha='center', va='center', transform=ax4.transAxes)
+            ax4.set_title('주차장 운영 효율성 지표', fontweight='bold')
+        
+        plt.tight_layout()
+        plt.savefig(self.arrivals_graph_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # 2. 비즈니스 성과 분석 (4개 차트)
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
+        fig.suptitle('주차장 비즈니스 성과 분석', fontsize=16, fontweight='bold')
+        
+        # 2-1. 층별 이용률 분포
+        floor_usage = df[df.floor.notna()].groupby('floor').size()
+        if not floor_usage.empty:
+            colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4']
+            wedges, texts, autotexts = ax1.pie(floor_usage.values, labels=floor_usage.index, 
+                                               autopct='%1.1f%%', colors=colors, startangle=90)
+            ax1.set_title('층별 이용률 분포', fontweight='bold')
+            
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontweight('bold')
+        else:
+            ax1.text(0.5, 0.5, '층별 데이터 없음', ha='center', va='center', transform=ax1.transAxes)
+            ax1.set_title('층별 이용률 분포', fontweight='bold')
+        
+        # 2-2. 차량 유형별 비율
+        vehicle_types = df.drop_duplicates('id').groupby('type').size()
+        if len(vehicle_types) > 1:
+            colors = ['#FFD93D', '#6BCF7F']
+            ax2.bar(vehicle_types.index, vehicle_types.values, color=colors, alpha=0.8)
+            ax2.set_title('차량 유형별 비율', fontweight='bold')
+            ax2.set_ylabel('차량 수')
+            
+            for i, v in enumerate(vehicle_types.values):
+                ax2.text(i, v + max(vehicle_types.values) * 0.01, str(v), 
+                        ha='center', va='bottom', fontweight='bold')
+        else:
+            ax2.text(0.5, 0.5, '차량 유형 데이터 부족', ha='center', va='center', transform=ax2.transAxes)
+            ax2.set_title('차량 유형별 비율', fontweight='bold')
+        
+        # 2-3. 시간대별 충전소 예상 수익
+        if not charge_df.empty:
+            charge_revenue_hourly = charge_df[charge_df.event == "charge_start"].copy()
+            charge_revenue_hourly['hour_bin'] = charge_revenue_hourly.hour.apply(lambda x: int(x))
+            hourly_revenue = charge_revenue_hourly.groupby('hour_bin').size() * 5000  # 5000원/회
+            
+            revenue_by_hour = [hourly_revenue.get(h, 0) for h in all_hours]
+            ax3.bar(all_hours, revenue_by_hour, color='gold', alpha=0.8)
+            ax3.set_title('시간대별 충전소 예상 수익', fontweight='bold')
+            ax3.set_xlabel('시간(시)')
+            ax3.set_ylabel('예상 수익 (원)')
+            ax3.grid(True, alpha=0.3)
+            ax3.set_xticks(range(0, 24, 2))
+            ax3.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{int(x/1000)}K'))
+        else:
+            ax3.text(0.5, 0.5, '충전 수익 데이터 없음', ha='center', va='center', transform=ax3.transAxes)
+            ax3.set_title('시간대별 충전소 예상 수익', fontweight='bold')
+        
+        # 2-4. 주차 수요 vs 공급 분석
+        total_spots = df[df.event == "park_success"].shape[0] + df[df.event == "park_fail"].shape[0]
+        success_spots = df[df.event == "park_success"].shape[0]
+        
+        if total_spots > 0:
+            supply_demand = ['공급 가능', '수요 초과']
+            values = [success_spots, total_spots - success_spots]
+            colors = ['#27AE60', '#E67E22']
+            
+            wedges, texts, autotexts = ax4.pie(values, labels=supply_demand, autopct='%1.1f%%',
+                                               colors=colors, startangle=90)
+            ax4.set_title('주차 수요 vs 공급 분석', fontweight='bold')
+            
+            for autotext in autotexts:
+                autotext.set_color('white')
+                autotext.set_fontweight('bold')
+        else:
+            ax4.text(0.5, 0.5, '주차 수요/공급 데이터 없음', ha='center', va='center', transform=ax4.transAxes)
+            ax4.set_title('주차 수요 vs 공급 분석', fontweight='bold')
+        
+        plt.tight_layout()
+        plt.savefig(self.parking_duration_graph_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # 3. 개선된 전기차 충전 패턴 분석
+        if not charge_df.empty:
+            plt.figure(figsize=(14, 8))
+            
+            unique_vehicles = charge_df.id.unique()[:10]  # 최대 10대만 표시
+            colors = plt.cm.tab10(np.linspace(0, 1, len(unique_vehicles)))
+            
+            for i, vehicle_id in enumerate(unique_vehicles):
+                v_data = charge_df[charge_df.id == vehicle_id].sort_values('time')
+                if len(v_data) > 1 and not v_data.battery.isna().all():
+                    plt.plot(v_data.time / 60, v_data.battery, marker='o', linewidth=2, 
+                            markersize=4, label=f'EV #{vehicle_id}', color=colors[i])
+            
+            plt.title('전기차 충전 패턴 분석 (상위 10대)', fontsize=14, fontweight='bold')
             plt.xlabel('시간 (분)')
             plt.ylabel('배터리 (%)')
-            plt.grid(True)
-            plt.legend()
-            plt.savefig(self.charge_graph_path)
+            plt.grid(True, alpha=0.3)
+            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+            
+            plt.tight_layout()
+            plt.savefig(self.charge_graph_path, dpi=300, bbox_inches='tight')
+            plt.close()
         
-        print(f"그래프가 생성되었습니다: {self.arrivals_graph_path}, {self.parking_duration_graph_path}")
+        print(f"비즈니스 분석 그래프가 생성되었습니다:")
+        print(f"  - 주차장 운영 현황: {self.arrivals_graph_path}")
+        print(f"  - 비즈니스 성과 분석: {self.parking_duration_graph_path}")
         if not charge_df.empty:
-            print(f"충전 그래프: {self.charge_graph_path}")
+            print(f"  - 충전 패턴 분석: {self.charge_graph_path}")
 
     def calculate_charger_cost(self, charger_count: int, charger_price: int = 800000, maintenance_per_year: int = 100000, lifetime_years: int = 7) -> int:
         """
@@ -308,8 +444,12 @@ class SimulationLogger:
             sim_time: 시뮬레이션 전체 시간(초)
             charger_count: 충전기 개수
         Returns:
-            공실률(0~1)
+            공실률(0~1), 충전소가 0개일 경우 0.0 반환
         """
+        # 충전소가 0개인 경우
+        if charger_count == 0:
+            return 0.0
+            
         df = self.get_dataframe()
         # 충전 시작/종료 이벤트만 추출, 시간순 정렬
         charge_events = df[df.event.isin(["charge_start", "charge_end"])].sort_values("time")

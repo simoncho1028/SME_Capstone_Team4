@@ -25,16 +25,32 @@ class ParkingManager:
         self.available_chargers = []  # [(floor, row, col), ...]
         
         # 주차장 맵에서 사용 가능한 주차면 찾기
+        self.total_parking_spots = 0  # 전체 주차면 수 (충전소 제외)
+        self.total_charger_spots = 0  # 전체 충전소 수
+        
         for floor, floor_map in PARKING_MAPS.items():
             self.available_spots_by_floor[floor] = []
             self.available_chargers_by_floor[floor] = []
             
             for row, line in enumerate(floor_map):
                 for col, cell in enumerate(line):
-                    if cell in [CELL_PARK, CELL_CHARGER]:  # 모든 주차 가능한 공간을 일단 일반 주차면으로 취급
-                        spot = (floor, row, col)
+                    spot = (floor, row, col)
+                    if cell in [CELL_PARK, CELL_CHARGER]:  # 모든 주차 가능한 공간을 일단 일반 주차면으로 처리
                         self.available_spots.append(spot)
                         self.available_spots_by_floor[floor].append(spot)
+                        self.total_parking_spots += 1
+    
+    def get_total_spots(self) -> Dict[str, int]:
+        """
+        전체 주차면과 충전소 수를 반환합니다.
+        
+        Returns:
+            Dict[str, int]: 주차면과 충전소 수 정보
+        """
+        return {
+            "total_parking_spots": self.total_parking_spots,
+            "total_charger_spots": self.total_charger_spots
+        }
     
     def allocate_chargers(self, num_chargers: int) -> None:
         """
@@ -52,13 +68,15 @@ class ParkingManager:
         # 모든 사용 가능한 주차면 중에서 랜덤하게 선택
         all_spots = []
         for floor in self.available_spots_by_floor:
-            all_spots.extend([(spot, floor) for spot in self.available_spots_by_floor[floor]])
+            all_spots.extend(self.available_spots_by_floor[floor])
         
         # 충전소로 변환할 주차면 선택
         selected_spots = random.sample(all_spots, min(num_chargers, len(all_spots)))
         
         # 선택된 주차면을 충전소로 변환
-        for spot, floor in selected_spots:
+        for spot in selected_spots:
+            floor = spot[0]  # (floor, row, col)
+            
             # 일반 주차면 목록에서 제거
             if spot in self.available_spots:
                 self.available_spots.remove(spot)
@@ -69,6 +87,10 @@ class ParkingManager:
             self.ev_chargers.add(spot)
             self.available_chargers.append(spot)
             self.available_chargers_by_floor[floor].append(spot)
+            
+            # 전체 주차면/충전소 수 업데이트
+            self.total_parking_spots -= 1
+            self.total_charger_spots += 1
             
         print(f"[INFO] {len(selected_spots)}개의 충전소가 할당되었습니다.")
         for floor in self.available_chargers_by_floor:
@@ -228,9 +250,18 @@ class ParkingManager:
         Returns:
             주차장 상태 정보를 담은 딕셔너리
         """
+        # 전체 주차면과 충전소 수
+        total_spots = self.get_total_spots()
+        
+        # 실제 사용 가능한 주차면 수 계산 (주차된 차량 제외)
+        available_parking_spots = len([spot for spot in self.available_spots if spot not in self.parking_spots])
+        available_charger_spots = len([spot for spot in self.available_chargers if spot not in self.parking_spots])
+        
         return {
             "total_parked": len(self.parked_vehicles),
             "double_parked": len(self.double_parked),
-            "available_spots": len(self.available_spots),
-            "available_ev_spots": len(self.available_chargers)
+            "available_spots": available_parking_spots,
+            "available_ev_spots": available_charger_spots,
+            "total_parking_spots": total_spots["total_parking_spots"],
+            "total_charger_spots": total_spots["total_charger_spots"]
         } 

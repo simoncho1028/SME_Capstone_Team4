@@ -4,6 +4,7 @@
 import simpy
 from typing import Dict, List, Optional
 from datetime import datetime
+import os
 
 from src.models.vehicle import Vehicle
 from src.models.parking_manager import ParkingManager
@@ -149,13 +150,69 @@ class ParkingSimulation:
         stats.update(self.parking_manager.get_parking_status())
         return stats
 
-    def print_summary(self) -> None:
-        """시뮬레이션 결과 요약을 출력"""
+    def save_summary_to_file(self, output_dir: str) -> None:
+        """
+        시뮬레이션 결과 요약을 파일로 저장합니다.
+        
+        Args:
+            output_dir: 저장할 디렉토리 경로
+        """
+        # 현재 시간으로 파일명 생성
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = os.path.join(output_dir, f"simulation_summary_{timestamp}.txt")
+        
         stats = self.get_statistics()
+        
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write("=== 시뮬레이션 결과 ===\n")
+            f.write(f"전체 주차면: {stats['total_parking_spots']}면 (일반 주차면)\n")
+            f.write(f"전체 충전소: {stats['total_charger_spots']}개\n\n")
+            
+            f.write("=== 주차장 상태 (현재) ===\n")
+            f.write(f"총 주차된 차량: {stats['total_parked']}대\n")
+            f.write(f"이중주차 차량: {stats['double_parked']}대\n")
+            f.write(f"사용 가능한 주차면: {stats['available_spots']}면\n")
+            f.write(f"사용 가능한 충전소: {stats['available_ev_spots']}개\n\n")
+            
+            f.write("=== 통계 ===\n")
+            f.write(f"총 입차 시도: {stats['total_entries']}회\n")
+            f.write(f"성공한 주차: {stats['successful_parks']}회\n")
+            f.write(f"실패한 주차: {stats['failed_parks']}회\n")
+            f.write(f"총 충전 시도: {stats['total_charges']}회\n\n")
+            
+            f.write("--- 최적화/운영 지표 ---\n")
+            if stats['total_charger_spots'] > 0:
+                charger_cost = self.logger.calculate_charger_cost(stats['total_charger_spots'])
+                idle_rate = self.logger.calculate_charger_idle_rate(self.env.now, stats['total_charger_spots'])
+                charge_fail_rate = self.logger.calculate_charge_fail_rate()
+                parking_fail_rate = self.logger.calculate_parking_fail_rate()
+                
+                f.write(f"충전소 설치+유지 총비용: {charger_cost:,} 원\n")
+                f.write(f"충전소 공실률: {idle_rate * 100:.2f} %\n")
+                f.write(f"충전 실패율: {charge_fail_rate * 100:.2f} %\n")
+                f.write(f"주차 실패율: {parking_fail_rate * 100:.2f} %\n")
+            else:
+                f.write("충전소가 설치되어 있지 않습니다.\n")
+                f.write(f"주차 실패율: {self.logger.calculate_parking_fail_rate() * 100:.2f} %\n")
+        
+        print(f"\n[INFO] 시뮬레이션 결과가 {filename}에 저장되었습니다.")
+
+    def print_summary(self, output_dir: str = None) -> None:
+        """
+        시뮬레이션 결과 요약을 출력하고 파일로 저장
+        
+        Args:
+            output_dir: 결과를 저장할 디렉토리 경로 (선택적)
+        """
+        stats = self.get_statistics()
+        
+        print("\n=== 시뮬레이션 결과 ===")
         
         print("\n=== 주차장 상태 ===")
         print(f"총 주차된 차량: {stats['total_parked']}대")
         print(f"이중주차 차량: {stats['double_parked']}대")
+        print(f"전체 주차면: {stats['total_parking_spots']}면 (일반 주차면)")
+        print(f"전체 충전소: {stats['total_charger_spots']}개")
         print(f"사용 가능한 주차면: {stats['available_spots']}면")
         print(f"사용 가능한 충전소: {stats['available_ev_spots']}개")
         
@@ -164,6 +221,27 @@ class ParkingSimulation:
         print(f"성공한 주차: {stats['successful_parks']}회")
         print(f"실패한 주차: {stats['failed_parks']}회")
         print(f"총 충전 시도: {stats['total_charges']}회")
+        
+        # 충전소 관련 지표
+        if stats['total_charger_spots'] > 0:
+            charger_cost = self.logger.calculate_charger_cost(stats['total_charger_spots'])
+            idle_rate = self.logger.calculate_charger_idle_rate(self.env.now, stats['total_charger_spots'])
+            charge_fail_rate = self.logger.calculate_charge_fail_rate()
+            parking_fail_rate = self.logger.calculate_parking_fail_rate()
+            
+            print("\n--- 최적화/운영 지표 ---")
+            print(f"충전소 설치+유지 총비용: {charger_cost:,} 원")
+            print(f"충전소 공실률: {idle_rate * 100:.2f} %")
+            print(f"충전 실패율: {charge_fail_rate * 100:.2f} %")
+            print(f"주차 실패율: {parking_fail_rate * 100:.2f} %")
+        else:
+            print("\n--- 최적화/운영 지표 ---")
+            print("충전소가 설치되어 있지 않습니다.")
+            print(f"주차 실패율: {self.logger.calculate_parking_fail_rate() * 100:.2f} %")
+        
+        # output_dir이 제공된 경우에만 파일로 저장
+        if output_dir:
+            self.save_summary_to_file(output_dir)
 
     def generate_plots(self) -> None:
         """시뮬레이션 결과를 시각화하는 그래프를 생성"""

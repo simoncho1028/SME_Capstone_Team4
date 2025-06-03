@@ -39,6 +39,7 @@ from src.models.parking_manager import ParkingManager
 from src.utils.logger import SimulationLogger
 from src.utils.visualizer import ParkingVisualizer
 from src.models.vehicle import Vehicle
+from parking_animation import prepare_frames_from_log, ParkingAnimationVisualizer, COLORS, FLOORS, PARKING_MAPS
 
 def load_vehicles() -> Dict:
     """vehicles.json 파일에서 차량 데이터를 로드합니다."""
@@ -69,9 +70,6 @@ def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]
         # 시간대별 비율에 따라 도착 시간 생성
         arrival_time = get_arrival_time()
         
-        # 주차 시간 랜덤 생성 (30분 ~ 12시간)
-        parking_duration = random.uniform(30 * 60, 12 * 3600)
-        
         # 배터리 레벨 랜덤 생성 (전기차만)
         battery_level = None
         if info["type"].lower() == "ev":
@@ -82,7 +80,6 @@ def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]
             vehicle_type=info["type"].lower(),
             arrival_time=arrival_time,
             building_id=info["building"],
-            parking_duration=parking_duration,
             battery_level=battery_level
         )
         vehicles.append(vehicle)
@@ -551,7 +548,10 @@ def main():
     
     # 결과 요약 출력
     print("\n=== 시뮬레이션 결과 ===")
-    sim.print_summary()
+    if not args.no_save_csv:
+        sim.print_summary(output_dir)  # output_dir 전달
+    else:
+        sim.print_summary()  # 파일 저장 없이 출력만
     
     # 최적화/운영 지표 출력
     print("\n--- 최적화/운영 지표 ---")
@@ -570,6 +570,9 @@ def main():
         csv_path = os.path.join(output_dir, "simulation_log.csv")
         sim.logger.save_to_csv(csv_path)
         print(f"\n[INFO] 결과가 {csv_path}에 저장되었습니다.")
+        
+        # 시뮬레이션 요약 저장
+        sim.save_summary_to_file(output_dir)
     
     # 그래프 생성 및 저장
     arrivals_path = os.path.join(output_dir, "arrivals_by_hour.png")
@@ -582,8 +585,7 @@ def main():
     # 시각화 (마지막에 한 번만)
     if args.visualize:
         print("\n[INFO] 최종 주차장 상태 시각화 중...")
-        logger = sim.get_results()
-        df = logger.get_dataframe()
+        df = sim.logger.get_dataframe()
         visualizer = ParkingVisualizer()
         frames = visualizer.generate_animation_data(df)
         
@@ -599,22 +601,21 @@ def main():
     
     # 애니메이션 (요청된 경우에만)
     if args.animation:
-        print("\n[INFO] 주차장 상태 애니메이션 생성 중...")
+        print("\n[INFO] 4층 통합 주차장 상태 애니메이션 생성 중...")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        animation_filename = f"parking_animation_{timestamp}.mp4"
+        animation_filename = f"parking_animation_4floors_{timestamp}.mp4"
         animation_path = os.path.join(output_dir, animation_filename)
         
-        from parking_animation import prepare_animation_data, animate_parking
-        logger = sim.get_results()
-        df = logger.get_dataframe()
+        df = sim.logger.get_dataframe()
         
-        print("[INFO] 애니메이션 데이터 준비 중...")
-        frames = prepare_animation_data(df, args.speed)
+        print("[INFO] 4층 통합 애니메이션 데이터 준비 중...")
+        frames = prepare_frames_from_log(df, frame_interval=30.0)
         
         if frames:
-            print(f"[INFO] 애니메이션 생성 중... (FPS: {args.fps}, DPI: {args.dpi})")
-            animate_parking(frames, animation_path, args.fps, args.dpi)
-            print(f"[INFO] 애니메이션이 저장되었습니다: {animation_path}")
+            print(f"[INFO] 4층 통합 애니메이션 생성 중... (FPS: {args.fps}, DPI: {args.dpi})")
+            visualizer = ParkingAnimationVisualizer(FLOORS, PARKING_MAPS, COLORS)
+            visualizer.animate(frames, animation_path, fps=args.fps, dpi=args.dpi)
+            print(f"[INFO] 4층 통합 애니메이션이 저장되었습니다: {animation_path}")
         else:
             print("[ERROR] 애니메이션 프레임을 생성할 수 없습니다.")
             return 1
