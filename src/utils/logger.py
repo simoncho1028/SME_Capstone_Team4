@@ -52,7 +52,8 @@ class SimulationLogger:
             self.charge_graph_path = charge_path
     
     def add_event(self, vehicle_id: int, vehicle_type: str, event: str, 
-                 time: float, pos: Optional[tuple] = None, battery: Optional[float] = None) -> None:
+                 time: float, pos: Optional[tuple] = None, battery: Optional[float] = None,
+                 building: Optional[str] = None, floor: Optional[str] = None) -> None:
         """
         시뮬레이션 이벤트를 로그에 추가합니다.
         
@@ -63,6 +64,8 @@ class SimulationLogger:
             time: 이벤트 발생 시간 (시뮬레이션 시간, 초 단위)
             pos: 이벤트 발생 위치 (r, c), 선택적
             battery: 전기차의 배터리 잔량 (0-100%)
+            building: 차량이 속한 건물 동
+            floor: 주차한 층
         """
         entry: LogEntry = {
             "id": vehicle_id,
@@ -71,19 +74,32 @@ class SimulationLogger:
             "time": time,
             "pos_r": pos[0] if pos else None,
             "pos_c": pos[1] if pos else None,
-            "battery": battery
+            "battery": battery,
+            "building": building,
+            "floor": floor
         }
         self.log.append(entry)
         
         # 충전 관련 이벤트는 충전 로그에도 기록
-        if event in ["charge_start", "charge_update", "charge_end"] and vehicle_type == "ev":
+        if event in ["charge_start", "charge_update", "charge_complete"] and vehicle_type == "ev":
             charge_entry: ChargeLogEntry = {
                 "id": vehicle_id,
                 "event": event,
                 "time": time,
-                "battery": battery
+                "battery": battery,
+                "building": building,
+                "floor": floor,
+                "hour": time / 3600  # 시간 단위로 변환
             }
             self.charge_log.append(charge_entry)
+            
+            # 충전 상태 변화 출력
+            if event == "charge_start":
+                print(f"[충전 시작] 차량 {vehicle_id}: 배터리 {battery:.1f}%")
+            elif event == "charge_update":
+                print(f"[충전 중] 차량 {vehicle_id}: 배터리 {battery:.1f}%")
+            elif event == "charge_complete":
+                print(f"[충전 완료] 차량 {vehicle_id}: 배터리 {battery:.1f}%")
     
     def get_dataframe(self) -> pd.DataFrame:
         """로그를 판다스 DataFrame으로 변환해 반환합니다."""

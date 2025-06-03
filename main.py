@@ -15,8 +15,9 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
 import platform
-from typing import List
+from typing import List, Dict
 import simpy
+import json
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -30,7 +31,8 @@ mpl.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 
 from src.config import (
     SEED, SIM_TIME, PARKING_MAPS,
-    generate_adjacent_charger_layouts
+    generate_adjacent_charger_layouts,
+    ENTRY_RATIO, get_arrival_time
 )
 from src.simulation.parking_simulation import ParkingSimulation
 from src.models.parking_manager import ParkingManager
@@ -38,6 +40,54 @@ from src.utils.logger import SimulationLogger
 from src.utils.visualizer import ParkingVisualizer
 from src.models.vehicle import Vehicle
 
+def load_vehicles() -> Dict:
+    """vehicles.json 파일에서 차량 데이터를 로드합니다."""
+    with open("data/vehicles.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data["vehicles"]
+
+def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]:
+    """
+    차량 객체 리스트를 생성합니다.
+    
+    Args:
+        env: SimPy 환경
+        vehicle_data: vehicles.json에서 로드한 차량 데이터
+        
+    Returns:
+        Vehicle 객체 리스트
+    """
+    vehicles = []
+    # 입차할 차량 수 계산
+    total_vehicles = len(vehicle_data)
+    entering_vehicles = int(total_vehicles * ENTRY_RATIO)
+    
+    # 입차할 차량 선택
+    selected_vehicles = random.sample(list(vehicle_data.items()), entering_vehicles)
+    
+    for vehicle_id, info in selected_vehicles:
+        # 시간대별 비율에 따라 도착 시간 생성
+        arrival_time = get_arrival_time()
+        
+        # 주차 시간 랜덤 생성 (30분 ~ 12시간)
+        parking_duration = random.uniform(30 * 60, 12 * 3600)
+        
+        # 배터리 레벨 랜덤 생성 (전기차만)
+        battery_level = None
+        if info["type"].lower() == "ev":
+            battery_level = random.uniform(20.0, 80.0)
+        
+        vehicle = Vehicle(
+            vehicle_id=info["id"],
+            vehicle_type=info["type"].lower(),
+            arrival_time=arrival_time,
+            building_id=info["building"],
+            parking_duration=parking_duration,
+            battery_level=battery_level
+        )
+        vehicles.append(vehicle)
+    
+    return vehicles
 
 def parse_arguments():
     """
@@ -475,6 +525,9 @@ def main():
     # 주차장 관리자 초기화
     parking_manager = ParkingManager()
     
+    # 충전소 할당
+    parking_manager.allocate_chargers(args.ev_chargers)
+    
     # 로거 초기화
     logger = SimulationLogger()
     
@@ -485,24 +538,12 @@ def main():
         logger=logger
     )
     
-    # 차량 생성
-    for i in range(args.normal):
-        vehicle = Vehicle(
-            vehicle_id=f"normal_{i}",
-            vehicle_type="normal",
-            arrival_time=random.uniform(0, args.time)
-        )
-        sim.active_vehicles[vehicle.vehicle_id] = vehicle
-        env.process(vehicle.run(sim))
+    # 차량 데이터 로드 및 차량 생성
+    vehicle_data = load_vehicles()
+    vehicles = create_vehicles(env, vehicle_data)
     
-    for i in range(args.ev):
-        vehicle = Vehicle(
-            vehicle_id=f"ev_{i}",
-            vehicle_type="ev",
-            arrival_time=random.uniform(0, args.time),
-            battery_level=random.uniform(20, 80)
-        )
-        sim.active_vehicles[vehicle.vehicle_id] = vehicle
+    # 각 차량의 프로세스 등록
+    for vehicle in vehicles:
         env.process(vehicle.run(sim))
     
     # 시뮬레이션 실행

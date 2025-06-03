@@ -12,6 +12,47 @@ SIM_TIME = 86_400          # 24시간 (초 단위)
 NUM_NORMAL = 830           # 일반 차량 수
 NUM_EV = 36               # 전기차 수
 TOTAL_VEHICLES = NUM_NORMAL + NUM_EV  # 총 차량 수
+ENTRY_RATIO = 0.9         # 전체 차량 중 입차하는 비율
+
+# 시간대별 입차 비율 (24시간)
+HOURLY_ENTRY_RATIOS = [
+    0.013531, 0.006599, 0.002784, 0.001782, 0.001392, 0.003202,
+    0.007406, 0.016510, 0.017680, 0.013531, 0.018236, 0.039313,
+    0.047053, 0.019823, 0.019267, 0.023387, 0.045438, 0.103878,
+    0.184676, 0.133307, 0.113122, 0.084528, 0.055489, 0.028065
+]
+
+# 시간대별 누적 확률 계산
+CUMULATIVE_ENTRY_PROBS = []
+cumsum = 0.0
+for ratio in HOURLY_ENTRY_RATIOS:
+    cumsum += ratio
+    CUMULATIVE_ENTRY_PROBS.append(cumsum)
+
+def get_arrival_time() -> float:
+    """
+    시간대별 입차 비율에 따라 차량의 도착 시간을 생성합니다.
+    
+    Returns:
+        float: 도착 시간 (초)
+    """
+    import random
+    r = random.random()
+    
+    # 이진 탐색으로 시간대 찾기
+    hour = 0
+    left, right = 0, len(CUMULATIVE_ENTRY_PROBS)
+    while left < right:
+        mid = (left + right) // 2
+        if CUMULATIVE_ENTRY_PROBS[mid] < r:
+            left = mid + 1
+        else:
+            right = mid
+    hour = left
+    
+    # 선택된 시간대 내에서 랜덤한 시간 선택
+    minute = random.uniform(0, 60)
+    return (hour * 3600) + (minute * 60)
 
 # 주차장 설정
 TOTAL_PARKING_SPOTS = 866  # 총 주차면 수

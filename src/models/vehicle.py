@@ -7,10 +7,10 @@ from dataclasses import dataclass
 @dataclass
 class Vehicle:
     """주차장 내 차량을 나타내는 클래스"""
-    vehicle_id: str  # 차량 고유 ID
+    vehicle_id: str  # 차량 고유 ID (N123 또는 E123 형식)
     vehicle_type: str  # "normal" 또는 "ev"
     arrival_time: float  # 도착 예정 시간
-    building_id: str = "A"  # 차량이 속한 동 번호
+    building_id: str  # 차량이 속한 동 번호 (예: "1동")
     state: str = "outside"  # "outside", "parked", "double_parked"
     battery_level: Optional[float] = None  # 전기차의 경우 배터리 잔량 (0-100)
     parking_duration: float = 3600.0  # 주차 예정 시간 (초)
@@ -46,7 +46,7 @@ class Vehicle:
 
     def update_state(self, new_state: str) -> None:
         """차량 상태 업데이트"""
-        if new_state not in ["outside", "parked", "double_parked"]:
+        if new_state not in ["outside", "parked", "double_parked", "charging"]:
             raise ValueError("Invalid vehicle state")
         self.state = new_state
 
