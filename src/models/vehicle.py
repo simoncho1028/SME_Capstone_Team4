@@ -4,7 +4,19 @@
 from typing import Optional
 from dataclasses import dataclass
 from src.utils.helpers import sample_parking_duration
+import numpy as np
 import random
+
+# GMM 컴포넌트 정의
+GMM_COMPONENTS = [
+    (0.359, 108, 42),   # (weight, mean, std)
+    (0.180, 213, 22),
+    (0.310, 403, 101),
+    (0.151, 635, 111)
+]
+
+# 충전 속도 설정 (아이오닉5 기준)
+CHARGING_RATE_PER_MINUTE = 0.162  # % per minute
 
 @dataclass
 class Vehicle:
@@ -13,25 +25,46 @@ class Vehicle:
     vehicle_type: str  # "normal" 또는 "ev"
     arrival_time: float  # 도착 예정 시간
     building_id: str  # 차량이 속한 동 번호 (예: "1동")
-    state: str = "outside"  # "outside", "parked", "double_parked"
+    state: str = "outside"  # "outside", "parked", "double_parked", "charging"
     battery_level: Optional[float] = None  # 전기차의 경우 배터리 잔량 (0-100)
     parking_duration: Optional[float] = None  # 주차 예정 시간 (초)
+    assigned_charging_time: Optional[float] = None  # 할당된 충전 시간 (분)
     is_charging: bool = False  # 충전 상태
+    finished_charging: bool = False  # 충전 완료 여부
+    charging_start_time: Optional[float] = None  # 충전 시작 시간
+    charged_amount: float = 0.0  # 충전된 양 (%)
 
     def __post_init__(self):
         """초기화 이후 추가 설정"""
         if self.vehicle_type not in ["normal", "ev"]:
             raise ValueError("vehicle_type must be either 'normal' or 'ev'")
         
-        if self.vehicle_type == "ev" and self.battery_level is None:
-            self.battery_level = random.uniform(20, 80)  # 초기 배터리 잔량 (20-80%)
+        if self.vehicle_type == "ev":
+            # 초기 배터리 레벨 설정 (20-80% 사이)
+            self.battery_level = random.uniform(20, 80) if self.battery_level is None else self.battery_level
+            
+            # GMM에서 충전 시간 샘플링
+            self.assigned_charging_time = self._sample_charging_time_from_gmm()
         
-        if self.state not in ["outside", "parked", "double_parked"]:
+        if self.state not in ["outside", "parked", "double_parked", "charging"]:
             raise ValueError("Invalid vehicle state")
             
         # 주차 시간이 설정되지 않은 경우, 도착 시각에 따른 감마 분포에서 샘플링
         if self.parking_duration is None:
             self.parking_duration = sample_parking_duration(self.arrival_time)
+
+    def _sample_charging_time_from_gmm(self) -> float:
+        """GMM에서 충전 시간을 샘플링합니다."""
+        # 컴포넌트 선택
+        weights = [comp[0] for comp in GMM_COMPONENTS]
+        selected_comp = np.random.choice(len(GMM_COMPONENTS), p=weights)
+        
+        # 선택된 컴포넌트에서 시간 샘플링
+        _, mean, std = GMM_COMPONENTS[selected_comp]
+        sampled_time = np.random.normal(mean, std)
+        
+        # 음수 방지
+        return max(0, sampled_time)
 
     def run(self, sim) -> None:
         """차량의 주차장 이용 프로세스"""
@@ -49,7 +82,9 @@ class Vehicle:
 
     def needs_charging(self) -> bool:
         """전기차의 충전 필요 여부 확인"""
-        return self.vehicle_type == "ev" and self.battery_level < 80
+        return (self.vehicle_type == "ev" and 
+                self.battery_level < 80 and 
+                not self.finished_charging)
 
     def update_state(self, new_state: str) -> None:
         """차량 상태 업데이트"""
@@ -59,35 +94,50 @@ class Vehicle:
         if new_state == "outside":
             self.stop_charging()
 
-    def start_charging(self) -> None:
+    def start_charging(self, current_time: float) -> None:
         """충전 시작"""
         if self.vehicle_type != "ev":
             raise ValueError("Only EV can start charging")
         self.state = "charging"
         self.is_charging = True
+        self.charging_start_time = current_time
+        self.charged_amount = 0.0
 
     def stop_charging(self) -> None:
         """충전 종료"""
-        self.state = "outside"
+        self.state = "parked"
         self.is_charging = False
-        self.battery_level = 100  # 완충 상태로 설정
+        self.charging_start_time = None
 
-    def update_battery(self, elapsed_time: float) -> None:
-        """배터리 잔량 업데이트"""
-        if self.vehicle_type != "ev":
+    def update_charging(self, current_time: float) -> None:
+        """충전 상태 업데이트"""
+        if not self.is_charging or self.charging_start_time is None:
             return
             
-        if self.state == "charging" and self.battery_level < 100.0:
-            # 선형적으로 배터리 증가 (1시간당 50% 충전 가정)
-            charge_rate = 50.0 / 3600  # %/초
-            self.battery_level = min(100.0, self.battery_level + charge_rate * elapsed_time)
+        # 충전 경과 시간 계산 (분 단위)
+        elapsed_minutes = (current_time - self.charging_start_time) / 60
+        
+        # 할당된 충전 시간이 지났는지 확인
+        if elapsed_minutes >= self.assigned_charging_time:
+            # 총 충전된 양 계산
+            total_charged = CHARGING_RATE_PER_MINUTE * self.assigned_charging_time
+            self.battery_level = min(100, self.battery_level + total_charged)
+            self.finished_charging = True
+            self.stop_charging()
+            return
+            
+        # 현재까지 충전된 양 계산
+        current_charged = CHARGING_RATE_PER_MINUTE * elapsed_minutes
+        self.battery_level = min(100, self.battery_level + current_charged - self.charged_amount)
+        self.charged_amount = current_charged
 
     def __str__(self) -> str:
         """문자열 표현"""
         status = f"Vehicle(id={self.vehicle_id}, type={self.vehicle_type}, " \
                 f"building={self.building_id}, state={self.state}"
         if self.vehicle_type == "ev":
-            status += f", battery={self.battery_level:.1f}%, charging={self.is_charging})"
-        else:
-            status += ")"
+            status += f", battery={self.battery_level:.1f}%, charging={self.is_charging}"
+            if self.assigned_charging_time is not None:
+                status += f", assigned_charging_time={self.assigned_charging_time:.1f}min"
+        status += ")"
         return status 
