@@ -11,6 +11,7 @@ from src.models.vehicle import Vehicle
 from src.models.vehicle_manager import VehicleManager
 from src.utils.logger import SimulationLogger
 from src.utils.helpers import sample_interarrival_time
+from src.models.parking_manager import ParkingManager
 
 class ParkingSimulation:
     """
@@ -44,14 +45,6 @@ class ParkingSimulation:
         self.parking_res = simpy.Resource(self.env, capacity=parking_capacity)
         self.charger_res = simpy.Resource(self.env, capacity=charger_count)
         
-        # 차량 관리자 초기화
-        self.vehicle_manager = VehicleManager(
-            normal_count=normal_count,
-            ev_count=ev_count,
-            building_count=building_count,
-            base_path=data_path
-        )
-        
         # 시뮬레이션 설정
         self.simulation_time = simulation_time
         self.data_path = Path(data_path)
@@ -61,6 +54,19 @@ class ParkingSimulation:
         self.logger = SimulationLogger(
             log_file=self.data_path / "simulation_log.csv",
             stats_file=self.data_path / "simulation_stats.json"
+        )
+        
+        # 주차장 관리자 초기화
+        self.parking_manager = ParkingManager()
+        self.parking_manager.set_env(self.env)
+        self.parking_manager.set_logger(self.logger)
+        
+        # 차량 관리자 초기화
+        self.vehicle_manager = VehicleManager(
+            normal_count=normal_count,
+            ev_count=ev_count,
+            building_count=building_count,
+            base_path=data_path
         )
         
         # 시뮬레이션 상태 초기화
@@ -83,11 +89,12 @@ class ParkingSimulation:
             if vehicle_id not in self.active_vehicles:
                 # 새 차량 생성
                 vehicle = Vehicle(
-                    vehicle_info=vehicle_info,
+                    vehicle_id=vehicle_info['vehicle_id'],
+                    vehicle_type=vehicle_info['type'],
+                    arrival_time=vehicle_info['arrival_time'],
+                    building_id=vehicle_info['building_id'],
                     env=self.env,
-                    parking_res=self.parking_res,
-                    charger_res=self.charger_res,
-                    logger=self.logger
+                    parking_manager=self.parking_manager
                 )
                 
                 # 차량 프로세스 시작
@@ -103,7 +110,7 @@ class ParkingSimulation:
         시뮬레이션을 실행합니다.
         """
         # 차량 도착 프로세스 시작
-        self.env.process(self.vehicle_arrival())
+        arrival_process = self.env.process(self.vehicle_arrival())
         
         # 시뮬레이션 실행
         self.env.run(until=self.simulation_time)

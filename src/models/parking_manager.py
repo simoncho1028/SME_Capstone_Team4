@@ -27,6 +27,17 @@ class ParkingManager:
         self.total_parking_spots = 0  # 전체 주차면 수 (충전소 제외)
         self.total_charger_spots = 0  # 전체 충전소 수
         
+        # SimPy 환경 추가
+        self.env = None
+        
+        # 로거 추가
+        self.logger = None
+        
+        # 주차장 맵 초기화
+        self._initialize_parking_map()
+    
+    def _initialize_parking_map(self):
+        """주차장 맵 초기화"""
         for floor, floor_map in PARKING_MAPS.items():
             self.available_spots_by_floor[floor] = []
             self.available_chargers_by_floor[floor] = []
@@ -44,38 +55,25 @@ class ParkingManager:
                         self.ev_chargers.add(spot)
                         self.total_charger_spots += 1
     
-    def get_total_spots(self) -> Dict[str, int]:
-        """
-        전체 주차면과 충전소 수를 반환합니다.
-        
-        Returns:
-            Dict[str, int]: 주차면과 충전소 수 정보
-        """
-        return {
-            "total_parking_spots": self.total_parking_spots,
-            "total_charger_spots": self.total_charger_spots
-        }
+    def set_env(self, env):
+        """SimPy 환경 설정"""
+        self.env = env
     
-    def get_available_floor(self) -> str:
-        """
-        가장 여유 있는 층을 반환합니다.
-        
-        Returns:
-            str: 층 식별자
-        """
-        # 각 층별 사용 가능한 주차면 비율 계산
-        floor_ratios = {}
-        for floor in self.available_spots_by_floor:
-            total_spots = len(self.available_spots_by_floor[floor]) + len(self.available_chargers_by_floor[floor])
-            if total_spots > 0:  # 0으로 나누기 방지
-                available = (len([s for s in self.available_spots_by_floor[floor] if s not in self.parking_spots]) +
-                           len([s for s in self.available_chargers_by_floor[floor] if s not in self.parking_spots]))
-                floor_ratios[floor] = available / total_spots
-            else:
-                floor_ratios[floor] = 0
-        
-        # 가장 여유 있는 층 반환
-        return max(floor_ratios.items(), key=lambda x: x[1])[0]
+    def set_logger(self, logger):
+        """로거 설정"""
+        self.logger = logger
+    
+    def is_spot_available(self, spot: tuple) -> bool:
+        """주차면이 사용 가능한지 확인"""
+        return spot not in self.parking_spots
+    
+    def get_available_spots_count(self) -> int:
+        """사용 가능한 주차면 수 반환"""
+        return len([spot for spot in self.available_spots if self.is_spot_available(spot)])
+    
+    def get_available_chargers_count(self) -> int:
+        """사용 가능한 충전소 수 반환"""
+        return len([spot for spot in self.available_chargers if self.is_spot_available(spot)])
     
     def park_vehicle(self, vehicle: Vehicle) -> bool:
         """
@@ -91,40 +89,22 @@ class ParkingManager:
         if vehicle.vehicle_id in self.parked_vehicles:
             return False
         
-        # 가장 여유 있는 층 선택
-        target_floor = self.get_available_floor()
-        
         # 전기차의 경우 충전소에 우선 배정
         if vehicle.vehicle_type == "ev" and vehicle.needs_charging():
-            # 선택된 층의 사용 가능한 충전소 확인
-            available_chargers = [spot for spot in self.available_chargers_by_floor[target_floor]
-                                if spot not in self.parking_spots]
+            # 사용 가능한 충전소 찾기
+            available_chargers = [spot for spot in self.available_chargers if self.is_spot_available(spot)]
             
             if available_chargers:
                 spot = random.choice(available_chargers)
                 self.parked_vehicles[vehicle.vehicle_id] = spot
                 self.parking_spots[spot] = vehicle.vehicle_id
                 vehicle.update_state("parked")
-                vehicle.start_charging()
+                if self.env:
+                    vehicle.start_charging(self.env.now)
                 return True
-            
-            # 다른 층의 충전소도 확인
-            for floor in self.available_chargers_by_floor:
-                if floor == target_floor:
-                    continue
-                available_chargers = [spot for spot in self.available_chargers_by_floor[floor]
-                                    if spot not in self.parking_spots]
-                if available_chargers:
-                    spot = random.choice(available_chargers)
-                    self.parked_vehicles[vehicle.vehicle_id] = spot
-                    self.parking_spots[spot] = vehicle.vehicle_id
-                    vehicle.update_state("parked")
-                    vehicle.start_charging()
-                    return True
         
         # 일반 주차면에 배정
-        available_spots = [spot for spot in self.available_spots_by_floor[target_floor]
-                         if spot not in self.parking_spots]
+        available_spots = [spot for spot in self.available_spots if self.is_spot_available(spot)]
         
         if available_spots:
             spot = random.choice(available_spots)
@@ -133,30 +113,11 @@ class ParkingManager:
             vehicle.update_state("parked")
             return True
         
-        # 다른 층의 주차면도 확인
-        for floor in self.available_spots_by_floor:
-            if floor == target_floor:
-                continue
-            available_spots = [spot for spot in self.available_spots_by_floor[floor]
-                             if spot not in self.parking_spots]
-            if available_spots:
-                spot = random.choice(available_spots)
-                self.parked_vehicles[vehicle.vehicle_id] = spot
-                self.parking_spots[spot] = vehicle.vehicle_id
-                vehicle.update_state("parked")
-                return True
-        
-        # 이중주차 시도
-        if len(self.double_parked) < len(self.available_spots) * 0.2:  # 최대 20%까지 이중주차 허용
-            self.double_parked.add(vehicle.vehicle_id)
-            vehicle.update_state("double_parked")
-            return True
-        
         return False
 
     def exit_vehicle(self, vehicle: Vehicle) -> bool:
         """
-        차량을 출차합니다.
+        차량을 출차 처리합니다.
         
         Args:
             vehicle: 출차할 차량
@@ -168,19 +129,48 @@ class ParkingManager:
         if vehicle.vehicle_id in self.double_parked:
             self.double_parked.remove(vehicle.vehicle_id)
             vehicle.update_state("outside")
+            # 전기차인 경우 배터리 랜덤 초기화
+            if vehicle.vehicle_type == "ev":
+                vehicle.battery_level = random.uniform(20.0, 80.0)
             return True
         
         # 일반 주차된 차량 처리
         spot = self.parked_vehicles.get(vehicle.vehicle_id)
         if spot:
-            floor, row, col = spot
+            # 주차면에서 차량 정보 제거
             del self.parked_vehicles[vehicle.vehicle_id]
             if spot in self.parking_spots:
                 del self.parking_spots[spot]
+            
             vehicle.update_state("outside")
+            # 전기차인 경우 배터리 랜덤 초기화
+            if vehicle.vehicle_type == "ev":
+                vehicle.battery_level = random.uniform(20.0, 80.0)
             return True
         
         return False
+
+    def handle_vehicle_exit(self, vehicle: Vehicle) -> None:
+        """
+        차량 출차를 처리하고 로그를 기록합니다.
+        
+        Args:
+            vehicle: 출차할 차량
+        """
+        # 현재 주차 위치 확인
+        spot = self.parked_vehicles.get(vehicle.vehicle_id)
+        
+        # 출차 처리
+        if self.exit_vehicle(vehicle):
+            # 메인 시뮬레이션 로그에 depart 이벤트 기록
+            self.logger.log_event(
+                time=self.env.now,
+                vehicle_id=vehicle.vehicle_id,
+                event="depart",
+                floor=spot[0] if spot else "",
+                pos=(spot[1], spot[2]) if spot else None,
+                battery=vehicle.battery_level
+            )
 
     def get_vehicle_position(self, vehicle_id: str) -> Optional[Tuple[str, int, int]]:
         """차량의 현재 위치 반환"""
@@ -193,8 +183,8 @@ class ParkingManager:
             "total_charger_spots": self.total_charger_spots,
             "total_parked": len(self.parked_vehicles),
             "double_parked": len(self.double_parked),
-            "available_spots": len([spot for spot in self.available_spots if spot not in self.parking_spots]),
-            "available_ev_spots": len([spot for spot in self.available_chargers if spot not in self.parking_spots])
+            "available_spots": self.get_available_spots_count(),
+            "available_ev_spots": self.get_available_chargers_count()
         }
 
     def allocate_chargers(self, num_chargers: int) -> None:
@@ -241,4 +231,41 @@ class ParkingManager:
         for floor in self.available_chargers_by_floor:
             count = len(self.available_chargers_by_floor[floor])
             if count > 0:
-                print(f"  - {floor}: {count}개") 
+                print(f"  - {floor}: {count}개")
+
+    def handle_vehicle_entry(self, vehicle: Vehicle) -> None:
+        """
+        차량 입차를 처리하고 로그를 기록합니다.
+        
+        Args:
+            vehicle: 입차할 차량
+        """
+        # 입차 로그 기록
+        self.logger.log_event(
+            time=self.env.now,
+            vehicle_id=vehicle.vehicle_id,
+            event="arrive",
+            building=vehicle.building_id
+        )
+        
+        # 주차 시도
+        if self.park_vehicle(vehicle):
+            # 주차 성공 시 로그 기록
+            spot = self.parked_vehicles[vehicle.vehicle_id]
+            
+            self.logger.log_event(
+                time=self.env.now,
+                vehicle_id=vehicle.vehicle_id,
+                event="park_success",
+                floor=spot[0],
+                pos=(spot[1], spot[2]),
+                battery=vehicle.battery_level,
+                parking_duration=vehicle.parking_duration  # 주차 예정 시간 기록
+            )
+        else:
+            # 주차 실패 시 로그 기록
+            self.logger.log_event(
+                time=self.env.now,
+                vehicle_id=vehicle.vehicle_id,
+                event="park_fail"
+            ) 

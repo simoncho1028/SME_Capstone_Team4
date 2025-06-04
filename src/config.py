@@ -15,7 +15,7 @@ TOTAL_VEHICLES = NUM_NORMAL + NUM_EV  # 총 차량 수
 ENTRY_RATIO = 0.9         # 전체 차량 중 입차하는 비율
 
 # 시간대별 입차 비율 (24시간)
-HOURLY_ENTRY_RATIOS = [
+normalized_entry_ratios = [
     0.013531, 0.006599, 0.002784, 0.001782, 0.001392, 0.003202,
     0.007406, 0.016510, 0.017680, 0.013531, 0.018236, 0.039313,
     0.047053, 0.019823, 0.019267, 0.023387, 0.045438, 0.103878,
@@ -25,7 +25,7 @@ HOURLY_ENTRY_RATIOS = [
 # 시간대별 누적 확률 계산
 CUMULATIVE_ENTRY_PROBS = []
 cumsum = 0.0
-for ratio in HOURLY_ENTRY_RATIOS:
+for ratio in normalized_entry_ratios:
     cumsum += ratio
     CUMULATIVE_ENTRY_PROBS.append(cumsum)
 
@@ -61,7 +61,7 @@ DEFAULT_BUILDING_COUNT = 8  # 건물 동 수
 
 # 시간 설정 (초 단위)
 MIN_PARKING_TIME = 30 * 60      # 최소 주차 시간 (30분)
-MAX_PARKING_TIME = 5 * 24 * 3600    # 최대 주차 시간 (12시간)
+MAX_PARKING_TIME = 24 * 3600    # 최대 주차 시간   (12시간)
 MIN_CHARGING_TIME = 30 * 60     # 최소 충전 시간 (30분)
 MAX_CHARGING_TIME = 24 * 3600    # 최대 충전 시간 (4시간)
 MIN_ARRIVAL_INTERVAL = 60       # 최소 도착 간격 (1분)

@@ -5,6 +5,7 @@
 사용법:
     python main.py
 
+
 이 파일은 주차장 시뮬레이션을 실행하고 결과를 시각화합니다.
 """
 import random
@@ -64,15 +65,9 @@ def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]
     vehicles = []
     # 입차할 차량 수 계산
     total_vehicles = len(vehicle_data)
-    entering_vehicles = int(total_vehicles * ENTRY_RATIO)
     
-    # 입차할 차량 선택
-    selected_vehicles = random.sample(list(vehicle_data.items()), entering_vehicles)
-    
-    for vehicle_id, info in selected_vehicles:
-        # 시간대별 비율에 따라 도착 시간 생성
-        arrival_time = get_arrival_time()
-        
+    # 모든 차량 생성
+    for vehicle_id, info in vehicle_data.items():
         # 배터리 레벨 랜덤 생성 (전기차만)
         battery_level = None
         if info["type"].lower() == "ev":
@@ -81,7 +76,7 @@ def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]
         vehicle = Vehicle(
             vehicle_id=info["id"],
             vehicle_type=info["type"].lower(),
-            arrival_time=arrival_time,
+            arrival_time=0,  # 초기값 0으로 설정 (실제 도착 시간은 plan_daily_entries에서 결정)
             building_id=info["building"],
             battery_level=battery_level
         )
@@ -423,8 +418,17 @@ def main():
     # 시드 설정
     random.seed(args.seed)
     
-    # 결과 저장 디렉토리 생성
-    output_dir = create_output_directory(args.output_prefix)
+    # 결과 저장 디렉토리 설정
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_dir = f"../results_sim_{timestamp}"  # 'results_' 중복 제거
+    os.makedirs(results_dir, exist_ok=True)
+    print(f"[INFO] 결과 저장 디렉토리 생성: {results_dir}")
+    
+    # 로거 초기화 (파일 경로 지정)
+    logger = SimulationLogger(
+        log_file=os.path.join(results_dir, "simulation_log.csv"),
+        stats_file=os.path.join(results_dir, "simulation_stats.json")
+    )
     
     # 주차장 관리자 초기화
     parking_manager = ParkingManager()
@@ -434,7 +438,7 @@ def main():
     
     # 레이아웃 시각화 요청이 있는 경우
     if args.visualize_layout:
-        visualizer = ParkingLayoutVisualizer(output_dir=output_dir)
+        visualizer = ParkingLayoutVisualizer(output_dir=results_dir)
         
         # 충전소 위치 수집 (parking_manager에서 할당된 위치 사용)
         charger_positions = defaultdict(list)
@@ -445,7 +449,7 @@ def main():
         visualizer.set_charger_positions(charger_positions)
         visualizer.visualize_all_floors()
         
-        print(f"\n[INFO] 주차장 레이아웃 및 충전소 위치가 '{output_dir}' 디렉토리에 저장되었습니다.")
+        print(f"\n[INFO] 주차장 레이아웃 및 충전소 위치가 '{results_dir}' 디렉토리에 저장되었습니다.")
 
     # 최적화 모드
     if args.optimize:
@@ -532,9 +536,6 @@ def main():
     # SimPy 환경 초기화
     env = simpy.Environment()
     
-    # 로거 초기화
-    logger = SimulationLogger()
-    
     # 시뮬레이션 객체 생성
     sim = ParkingSimulation(
         env=env,
@@ -546,9 +547,9 @@ def main():
     vehicle_data = load_vehicles()
     vehicles = create_vehicles(env, vehicle_data)
     
-    # 각 차량의 프로세스 등록
+    # 차량들을 시뮬레이션의 outside_vehicles에 추가
     for vehicle in vehicles:
-        env.process(vehicle.run(sim))
+        sim.outside_vehicles[vehicle.vehicle_id] = vehicle
     
     # 시뮬레이션 실행
     sim.run(until=args.time)
@@ -556,7 +557,7 @@ def main():
     # 결과 요약 출력
     print("\n=== 시뮬레이션 결과 ===")
     if not args.no_save_csv:
-        sim.print_summary(output_dir)  # output_dir 전달
+        sim.print_summary(results_dir)  # results_dir 전달
     else:
         sim.print_summary()  # 파일 저장 없이 출력만
     
@@ -574,19 +575,18 @@ def main():
     
     # 결과 CSV 저장
     if not args.no_save_csv:
-        csv_path = os.path.join(output_dir, "simulation_log.csv")
+        csv_path = os.path.join(results_dir, "simulation_log.csv")
         sim.logger.save_to_csv(csv_path)
         print(f"\n[INFO] 결과가 {csv_path}에 저장되었습니다.")
         
         # 시뮬레이션 요약 저장
-        sim.save_summary_to_file(output_dir)
+        sim.save_summary_to_file(results_dir)
     
     # 그래프 생성 및 저장
-    arrivals_path = os.path.join(output_dir, "arrivals_by_hour.png")
-    parking_path = os.path.join(output_dir, "parking_duration.png")
-    charging_path = os.path.join(output_dir, "charging_patterns.png")
+    arrivals_path = os.path.join(results_dir, "arrivals_by_hour.png")
+    charging_path = os.path.join(results_dir, "charging_patterns.png")
     
-    sim.logger.set_graph_paths(arrivals_path, parking_path, charging_path)
+    sim.logger.set_graph_paths(arrivals_path, charging_path)
     sim.generate_plots()
     
     # 시각화 (마지막에 한 번만)
@@ -601,17 +601,17 @@ def main():
             visualizer.save_state_image(
                 frames[-1]['occupied'], 
                 frames[-1]['charging'], 
-                os.path.join(output_dir, "final_parking_state.png"),
+                os.path.join(results_dir, "final_parking_state.png"),
                 f"최종 주차장 상태 (시간: {frames[-1]['time']/3600:.1f}시간)"
             )
-            print(f"[INFO] 최종 상태 이미지가 {output_dir} 디렉토리에 저장되었습니다.")
+            print(f"[INFO] 최종 상태 이미지가 {results_dir} 디렉토리에 저장되었습니다.")
     
     # 애니메이션 (요청된 경우에만)
     if args.animation:
         print("\n[INFO] 4층 통합 주차장 상태 애니메이션 생성 중...")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         animation_filename = f"parking_animation_4floors_{timestamp}.mp4"
-        animation_path = os.path.join(output_dir, animation_filename)
+        animation_path = os.path.join(results_dir, animation_filename)
         
         df = sim.logger.get_dataframe()
         
@@ -628,7 +628,7 @@ def main():
             return 1
     
     print("\n[INFO] 시뮬레이션이 완료되었습니다.")
-    print(f"[INFO] 모든 결과가 {output_dir} 디렉토리에 저장되었습니다.")
+    print(f"[INFO] 모든 결과가 {results_dir} 디렉토리에 저장되었습니다.")
     return 0
 
 

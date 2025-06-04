@@ -8,6 +8,7 @@ import matplotlib as mpl
 from datetime import datetime
 import platform
 import numpy as np
+import json
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -27,28 +28,46 @@ ChargeLogEntry = Dict[str, Any]
 class SimulationLogger:
     """시뮬레이션 이벤트를 기록하고 분석하는 클래스"""
     
-    def __init__(self):
-        """로거 초기화"""
-        # 일반 이벤트 로그
+    def __init__(self, log_file: str, stats_file: str):
+        """
+        로거를 초기화합니다.
+        
+        Args:
+            log_file: 로그 파일 경로
+            stats_file: 통계 파일 경로
+        """
+        self.log_file = log_file
+        self.stats_file = stats_file
+        
+        # 로그 리스트 초기화
         self.log: List[LogEntry] = []
-        # 충전 관련 로그 (충전 이벤트만 별도 관리)
         self.charge_log: List[ChargeLogEntry] = []
         
+        # 로그 파일 초기화
+        with open(self.log_file, 'w', encoding='utf-8') as f:
+            f.write("time,id,event,floor,pos_r,pos_c,battery,parking_duration\n")
+        
+        # 통계 초기화
+        self.stats = {
+            "total_vehicles": 0,
+            "total_parked": 0,
+            "total_charged": 0,
+            "avg_parking_time": 0,
+            "avg_charging_time": 0
+        }
+        
         self.arrivals_graph_path = 'arrivals_by_hour.png'
-        self.parking_duration_graph_path = 'parking_duration.png'
         self.charge_graph_path = 'charging_patterns.png'
     
-    def set_graph_paths(self, arrivals_path: str, parking_duration_path: str, charge_path: str = None) -> None:
+    def set_graph_paths(self, arrivals_path: str, charge_path: str = None) -> None:
         """
         그래프 저장 경로를 설정합니다.
         
         Args:
             arrivals_path: 시간대별 차량 도착 그래프 저장 경로
-            parking_duration_path: 주차 시간 분포 그래프 저장 경로
             charge_path: 충전 패턴 그래프 저장 경로
         """
         self.arrivals_graph_path = arrivals_path
-        self.parking_duration_graph_path = parking_duration_path
         if charge_path:
             self.charge_graph_path = charge_path
     
@@ -61,13 +80,17 @@ class SimulationLogger:
         Args:
             vehicle_id: 차량 ID
             vehicle_type: 차량 타입 ("normal" 또는 "ev")
-            event: 이벤트 유형 (arrive, park_start, charge_start, charge_update, charge_end, depart, move)
+            event: 이벤트 유형 (arrive, park_start, charge_start, charge_complete, depart, move)
             time: 이벤트 발생 시간 (시뮬레이션 시간, 초 단위)
             pos: 이벤트 발생 위치 (r, c), 선택적
             battery: 전기차의 배터리 잔량 (0-100%)
             building: 차량이 속한 건물 동
             floor: 주차한 층
         """
+        # charge_update 이벤트는 로깅하지 않음
+        if event == "charge_update":
+            return
+            
         entry: LogEntry = {
             "id": vehicle_id,
             "type": vehicle_type,
@@ -82,7 +105,7 @@ class SimulationLogger:
         self.log.append(entry)
         
         # 충전 관련 이벤트는 충전 로그에도 기록
-        if event in ["charge_start", "charge_update", "charge_complete"] and vehicle_type == "ev":
+        if event in ["charge_start", "charge_complete"] and vehicle_type == "ev":
             charge_entry: ChargeLogEntry = {
                 "id": vehicle_id,
                 "event": event,
@@ -97,8 +120,6 @@ class SimulationLogger:
             # 충전 상태 변화 출력
             if event == "charge_start":
                 print(f"[충전 시작] 차량 {vehicle_id}: 배터리 {battery:.1f}%")
-            elif event == "charge_update":
-                print(f"[충전 중] 차량 {vehicle_id}: 배터리 {battery:.1f}%")
             elif event == "charge_complete":
                 print(f"[충전 완료] 차량 {vehicle_id}: 배터리 {battery:.1f}%")
     
@@ -389,7 +410,7 @@ class SimulationLogger:
             ax4.set_title('주차 수요 vs 공급 분석', fontweight='bold')
         
         plt.tight_layout()
-        plt.savefig(self.parking_duration_graph_path, dpi=300, bbox_inches='tight')
+        plt.savefig(self.arrivals_graph_path, dpi=300, bbox_inches='tight')
         plt.close()
         
         # 3. 개선된 전기차 충전 패턴 분석
@@ -417,7 +438,6 @@ class SimulationLogger:
         
         print(f"비즈니스 분석 그래프가 생성되었습니다:")
         print(f"  - 주차장 운영 현황: {self.arrivals_graph_path}")
-        print(f"  - 비즈니스 성과 분석: {self.parking_duration_graph_path}")
         if not charge_df.empty:
             print(f"  - 충전 패턴 분석: {self.charge_graph_path}")
 
@@ -508,4 +528,56 @@ class SimulationLogger:
         fail_count = df[df.event == "park_fail"].shape[0]
         if total_attempts == 0:
             return 0.0
-        return fail_count / total_attempts 
+        return fail_count / total_attempts
+
+    def log_event(self, time: float, vehicle_id: str, event: str, 
+                 floor: str = "", pos: tuple = None, battery: float = None,
+                 parking_duration: float = None) -> None:
+        """
+        시뮬레이션 이벤트를 로그 파일에 기록합니다.
+        
+        Args:
+            time: 이벤트 발생 시간
+            vehicle_id: 차량 ID
+            event: 이벤트 유형
+            floor: 주차 층
+            pos: 주차 위치 (row, col)
+            battery: 배터리 잔량
+            parking_duration: 주차 예정 시간
+        """
+        pos_r = pos[0] if pos else ""
+        pos_c = pos[1] if pos else ""
+        
+        # 로그 파일에 이벤트 기록
+        with open(self.log_file, 'a', encoding='utf-8') as f:
+            f.write(f"{time},{vehicle_id},{event},{floor},{pos_r},{pos_c},{battery},{parking_duration}\n")
+            
+        # 통계 업데이트
+        if event == "park_success" and parking_duration is not None:
+            self.update_stats(event, parking_duration)
+    
+    def update_stats(self, event: str, duration: float = 0) -> None:
+        """
+        통계 정보를 업데이트합니다.
+        
+        Args:
+            event: 이벤트 유형
+            duration: 소요 시간
+        """
+        if event == "park_success":
+            self.stats["total_parked"] += 1
+            self.stats["avg_parking_time"] = (
+                (self.stats["avg_parking_time"] * (self.stats["total_parked"] - 1) + duration)
+                / self.stats["total_parked"]
+            )
+        elif event == "charge_comp":
+            self.stats["total_charged"] += 1
+            self.stats["avg_charging_time"] = (
+                (self.stats["avg_charging_time"] * (self.stats["total_charged"] - 1) + duration)
+                / self.stats["total_charged"]
+            )
+    
+    def save_stats(self) -> None:
+        """통계 정보를 파일에 저장합니다."""
+        with open(self.stats_file, 'w', encoding='utf-8') as f:
+            json.dump(self.stats, f, ensure_ascii=False, indent=2) 

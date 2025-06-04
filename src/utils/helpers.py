@@ -4,6 +4,7 @@
 import random
 import numpy as np
 from typing import List, Tuple, Dict, Optional
+from src.config import MIN_PARKING_TIME, MAX_PARKING_TIME, MIN_CHARGING_TIME, MAX_CHARGING_TIME
 
 # 시간대별 입차 비율 (24시간)
 normalized_entry_ratios = [
@@ -41,11 +42,6 @@ gamma_params_by_hour = [
     (1.165172, 2681.346973)
 ]
 
-MIN_PARKING_TIME = 30 * 60      # 최소 주차 시간 (30분)
-MAX_PARKING_TIME = 12 * 3600    # 최대 주차 시간 (12시간)
-MIN_CHARGING_TIME = 30 * 60     # 최소 충전 시간 (30분)
-MAX_CHARGING_TIME = 4 * 3600    # 최대 충전 시간 (4시간)
-
 NORMAL_PARKING_MEAN = 4.0       # 일반 차량 평균 주차 시간 (시간)
 NORMAL_PARKING_STD = 2.0        # 일반 차량 주차 시간 표준편차 (시간)
 EV_CHARGING_MEAN = 2.0          # EV 평균 충전 시간 (시간)
@@ -65,7 +61,7 @@ def sample_battery_level() -> float:
 
 def sample_parking_duration(arrival_time: float) -> float:
     """
-    차량의 주차 시간을 시간대별 감마 분포에서 샘플링합니다.
+    차량의 주차 시간을 정규분포에서 샘플링합니다.
     
     Args:
         arrival_time: 차량 도착 시각 (초)
@@ -73,17 +69,40 @@ def sample_parking_duration(arrival_time: float) -> float:
     Returns:
         float: 주차 시간 (초)
     """
-    # 도착 시각을 시간대(0-23)로 변환
-    hour = int((arrival_time % 86400) // 3600)
+    # 새로운 정규분포 기반 샘플링
+    # MIN_PARKING_TIME ~ MAX_PARKING_TIME 범위에서 정규분포 샘플링
+    min_hours = MIN_PARKING_TIME / 3600  # 초를 시간으로 변환
+    max_hours = MAX_PARKING_TIME / 3600  # 초를 시간으로 변환
     
-    # 해당 시간대의 감마 분포 파라미터 가져오기
-    shape, scale = gamma_params_by_hour[hour]
+    # 평균을 min과 max의 중점으로, 표준편차를 범위의 1/6로 설정
+    # (정규분포에서 99.7%가 평균 ± 3σ 범위에 들어오므로)
+    mean_hours = (min_hours + max_hours) / 2
+    std_hours = (max_hours - min_hours) / 6
     
-    # 감마 분포에서 샘플링 (분 단위)
-    minutes = np.random.gamma(shape, scale)
+    # 정규분포에서 샘플링
+    hours = np.random.normal(mean_hours, std_hours)
     
-    # 초 단위로 변환하여 반환
-    return minutes * 60
+    # 초 단위로 변환하고 제한 적용
+    duration = hours * 3600
+    duration = max(MIN_PARKING_TIME, min(MAX_PARKING_TIME, duration))
+    
+    return duration
+    
+    # 기존 감마 분포 기반 코드 (주석 처리)
+    # # 도착 시각을 시간대(0-23)로 변환
+    # hour = int((arrival_time % 86400) // 3600)
+    # 
+    # # 해당 시간대의 감마 분포 파라미터 가져오기
+    # shape, scale = gamma_params_by_hour[hour]
+    # 
+    # # 감마 분포에서 샘플링 (분 단위)
+    # minutes = np.random.gamma(shape, scale)
+    # 
+    # # 초 단위로 변환하고 제한 적용
+    # duration = minutes * 60
+    # duration = max(MIN_PARKING_TIME, min(MAX_PARKING_TIME, duration))
+    # 
+    # return duration
 
 def sample_charge_time() -> float:
     """

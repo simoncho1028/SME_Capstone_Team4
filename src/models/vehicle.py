@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from src.utils.helpers import sample_parking_duration
 import numpy as np
 import random
+import os
 
 # GMM 컴포넌트 정의
 GMM_COMPONENTS = [
@@ -33,6 +34,8 @@ class Vehicle:
     finished_charging: bool = False  # 충전 완료 여부
     charging_start_time: Optional[float] = None  # 충전 시작 시간
     charged_amount: float = 0.0  # 충전된 양 (%)
+    env: Optional[object] = None  # SimPy 환경
+    parking_manager: Optional[object] = None  # 주차장 관리자
 
     def __post_init__(self):
         """초기화 이후 추가 설정"""
@@ -66,19 +69,34 @@ class Vehicle:
         # 음수 방지
         return max(0, sampled_time)
 
-    def run(self, sim) -> None:
+    def process(self):
+        """
+        SimPy 환경에서 차량 프로세스를 실행합니다.
+        """
+        return self.run()
+    
+    def run(self):
         """차량의 주차장 이용 프로세스"""
-        # 도착 시간까지 대기
-        yield sim.env.timeout(self.arrival_time)
+        # 도착 시간까지 대기 (현재 시뮬레이션 시간에서 도착 시간까지의 차이)
+        if self.arrival_time > self.env.now:
+            wait_time = self.arrival_time - self.env.now
+            yield self.env.timeout(wait_time)
         
         # 입차 처리
-        sim.handle_vehicle_entry(self)
+        self.parking_manager.handle_vehicle_entry(self)
         
-        # 주차 시간 동안 대기
-        yield sim.env.timeout(self.parking_duration)
-        
-        # 출차 처리
-        sim.handle_vehicle_exit(self)
+        # 주차 성공 여부 확인
+        if self.vehicle_id in self.parking_manager.parked_vehicles:
+            # 주차 시간 동안 대기
+            yield self.env.timeout(self.parking_duration)
+            
+            # 출차 처리
+            self.parking_manager.handle_vehicle_exit(self)
+            
+            # 차량 상태를 outside로 변경
+            self.update_state("outside")
+        else:
+            print(f"[TEST] 차량 {self.vehicle_id} 주차 실패")
 
     def needs_charging(self) -> bool:
         """전기차의 충전 필요 여부 확인"""
@@ -141,3 +159,39 @@ class Vehicle:
                 status += f", assigned_charging_time={self.assigned_charging_time:.1f}min"
         status += ")"
         return status 
+
+    def park(self, floor: str, position: tuple, parking_manager) -> None:
+        """차량을 주차 처리"""
+        if parking_manager.park_vehicle(self):
+            # 주차 성공 로그 기록
+            parking_manager.logger.log_event(
+                time=parking_manager.env.now,
+                vehicle_id=self.vehicle_id,
+                event="park_success",
+                floor=floor,
+                pos=position,
+                battery=self.battery_level,
+                parking_duration=self.parking_duration  # 주차 시간 정보 추가
+            )
+            
+            # 통계 업데이트
+            parking_manager.logger.update_stats("park_success", self.parking_duration)
+            
+            # 전기차이고 충전이 필요한 경우 충전 시작
+            if self.vehicle_type == "ev" and self.needs_charging():
+                self.start_charging(parking_manager.env.now)
+                parking_manager.logger.log_event(
+                    time=parking_manager.env.now,
+                    vehicle_id=self.vehicle_id,
+                    event="charge_start",
+                    floor=floor,
+                    pos=position,
+                    battery=self.battery_level
+                )
+        else:
+            # 주차 실패 로그 기록
+            parking_manager.logger.log_event(
+                time=parking_manager.env.now,
+                vehicle_id=self.vehicle_id,
+                event="park_fail"
+            ) 

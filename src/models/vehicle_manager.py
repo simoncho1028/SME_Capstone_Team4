@@ -200,7 +200,16 @@ class VehicleManager:
         Returns:
             차량 정보 딕셔너리 또는 None
         """
-        return self.vehicles.get(vehicle_id)
+        vehicle_data = self.vehicles.get(vehicle_id)
+        if vehicle_data:
+            # 시뮬레이션에서 필요한 형태로 변환
+            return {
+                'vehicle_id': vehicle_id,
+                'type': 'ev' if vehicle_data['type'] == 'EV' else 'normal',
+                'arrival_time': random.uniform(0, 86400),  # 24시간 내 랜덤 도착
+                'building_id': vehicle_data['building']
+            }
+        return None
     
     def get_building_vehicles(self, building: str) -> List[Dict]:
         """
