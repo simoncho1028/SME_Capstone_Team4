@@ -71,6 +71,13 @@ class ParkingLayoutVisualizer:
         # 그리드 크기 설정
         self.cell_size = 1.2  # 셀 크기 증가
         self.font_size = 20   # 폰트 크기 증가
+        
+        # 충전소 위치 저장
+        self.charger_positions = {}  # floor -> [(row, col), ...]
+
+    def set_charger_positions(self, charger_positions: Dict[str, List[tuple]]):
+        """충전소 위치 설정"""
+        self.charger_positions = charger_positions
 
     def visualize_all_floors(self):
         """모든 층의 주차장 레이아웃을 시각화하고 저장합니다."""
@@ -113,6 +120,11 @@ class ParkingLayoutVisualizer:
                     color = self.COLORS['B1']
                 else:
                     color = self.COLORS.get(cell, 'white')
+                
+                # 충전소 위치 확인 및 색상 변경
+                if cell == 'P' and floor_name in self.charger_positions:
+                    if (i, j) in self.charger_positions[floor_name]:
+                        color = self.COLORS['C']
                 
                 # 셀 그리기
                 rect = plt.Rectangle((j, height-i-1), 1, 1, facecolor=color, edgecolor='black', linewidth=0.5)

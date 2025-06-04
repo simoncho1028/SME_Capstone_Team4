@@ -41,6 +41,16 @@ gamma_params_by_hour = [
     (1.165172, 2681.346973)
 ]
 
+MIN_PARKING_TIME = 30 * 60      # 최소 주차 시간 (30분)
+MAX_PARKING_TIME = 12 * 3600    # 최대 주차 시간 (12시간)
+MIN_CHARGING_TIME = 30 * 60     # 최소 충전 시간 (30분)
+MAX_CHARGING_TIME = 4 * 3600    # 최대 충전 시간 (4시간)
+
+NORMAL_PARKING_MEAN = 4.0       # 일반 차량 평균 주차 시간 (시간)
+NORMAL_PARKING_STD = 2.0        # 일반 차량 주차 시간 표준편차 (시간)
+EV_CHARGING_MEAN = 2.0          # EV 평균 충전 시간 (시간)
+EV_CHARGING_STD = 1.0           # EV 충전 시간 표준편차 (시간)
+
 def sample_battery_level() -> float:
     """
     전기차의 초기 배터리 잔량을 샘플링합니다.

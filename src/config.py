@@ -61,9 +61,9 @@ DEFAULT_BUILDING_COUNT = 8  # 건물 동 수
 
 # 시간 설정 (초 단위)
 MIN_PARKING_TIME = 30 * 60      # 최소 주차 시간 (30분)
-MAX_PARKING_TIME = 12 * 3600    # 최대 주차 시간 (12시간)
+MAX_PARKING_TIME = 5 * 24 * 3600    # 최대 주차 시간 (12시간)
 MIN_CHARGING_TIME = 30 * 60     # 최소 충전 시간 (30분)
-MAX_CHARGING_TIME = 4 * 3600    # 최대 충전 시간 (4시간)
+MAX_CHARGING_TIME = 24 * 3600    # 최대 충전 시간 (4시간)
 MIN_ARRIVAL_INTERVAL = 60       # 최소 도착 간격 (1분)
 MAX_ARRIVAL_INTERVAL = 15 * 60  # 최대 도착 간격 (15분)
 

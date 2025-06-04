@@ -18,6 +18,7 @@ import platform
 from typing import List, Dict
 import simpy
 import json
+from collections import defaultdict
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -32,7 +33,8 @@ mpl.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 from src.config import (
     SEED, SIM_TIME, PARKING_MAPS,
     generate_adjacent_charger_layouts,
-    ENTRY_RATIO, get_arrival_time
+    ENTRY_RATIO, get_arrival_time,
+    CELL_PARK, CELL_CHARGER
 )
 from src.simulation.parking_simulation import ParkingSimulation
 from src.models.parking_manager import ParkingManager
@@ -40,6 +42,7 @@ from src.utils.logger import SimulationLogger
 from src.utils.visualizer import ParkingVisualizer
 from src.models.vehicle import Vehicle
 from parking_animation import prepare_frames_from_log, ParkingAnimationVisualizer, COLORS, FLOORS, PARKING_MAPS
+from parking_layout_visualizer import ParkingLayoutVisualizer
 
 def load_vehicles() -> Dict:
     """vehicles.json 파일에서 차량 데이터를 로드합니다."""
@@ -423,16 +426,26 @@ def main():
     # 결과 저장 디렉토리 생성
     output_dir = create_output_directory(args.output_prefix)
     
+    # 주차장 관리자 초기화
+    parking_manager = ParkingManager()
+    
+    # 충전소 할당
+    parking_manager.allocate_chargers(args.ev_chargers)
+    
     # 레이아웃 시각화 요청이 있는 경우
     if args.visualize_layout:
-        from parking_layout_visualizer import ParkingLayoutVisualizer
-        visualizer = ParkingLayoutVisualizer("layout_images")
-        visualizer.dpi = args.layout_dpi
-        visualizer.cell_size = args.layout_cell_size
-        visualizer.font_size = args.layout_font_size
+        visualizer = ParkingLayoutVisualizer(output_dir=output_dir)
+        
+        # 충전소 위치 수집 (parking_manager에서 할당된 위치 사용)
+        charger_positions = defaultdict(list)
+        for floor, row, col in parking_manager.ev_chargers:
+            charger_positions[floor].append((row, col))
+        
+        # 충전소 위치 설정 및 시각화
+        visualizer.set_charger_positions(charger_positions)
         visualizer.visualize_all_floors()
-        if not args.animation:  # 애니메이션을 생성하지 않는 경우 종료
-            return
+        
+        print(f"\n[INFO] 주차장 레이아웃 및 충전소 위치가 '{output_dir}' 디렉토리에 저장되었습니다.")
 
     # 최적화 모드
     if args.optimize:
@@ -518,12 +531,6 @@ def main():
     
     # SimPy 환경 초기화
     env = simpy.Environment()
-    
-    # 주차장 관리자 초기화
-    parking_manager = ParkingManager()
-    
-    # 충전소 할당
-    parking_manager.allocate_chargers(args.ev_chargers)
     
     # 로거 초기화
     logger = SimulationLogger()

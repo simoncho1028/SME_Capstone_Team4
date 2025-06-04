@@ -4,6 +4,7 @@
 from typing import Optional
 from dataclasses import dataclass
 from src.utils.helpers import sample_parking_duration
+import random
 
 @dataclass
 class Vehicle:
@@ -15,6 +16,7 @@ class Vehicle:
     state: str = "outside"  # "outside", "parked", "double_parked"
     battery_level: Optional[float] = None  # 전기차의 경우 배터리 잔량 (0-100)
     parking_duration: Optional[float] = None  # 주차 예정 시간 (초)
+    is_charging: bool = False  # 충전 상태
 
     def __post_init__(self):
         """초기화 이후 추가 설정"""
@@ -22,7 +24,7 @@ class Vehicle:
             raise ValueError("vehicle_type must be either 'normal' or 'ev'")
         
         if self.vehicle_type == "ev" and self.battery_level is None:
-            self.battery_level = 100.0  # 기본값 설정
+            self.battery_level = random.uniform(20, 80)  # 초기 배터리 잔량 (20-80%)
         
         if self.state not in ["outside", "parked", "double_parked"]:
             raise ValueError("Invalid vehicle state")
@@ -47,19 +49,28 @@ class Vehicle:
 
     def needs_charging(self) -> bool:
         """전기차의 충전 필요 여부 확인"""
-        return self.vehicle_type == "ev" and self.battery_level < 100.0
+        return self.vehicle_type == "ev" and self.battery_level < 80
 
     def update_state(self, new_state: str) -> None:
         """차량 상태 업데이트"""
         if new_state not in ["outside", "parked", "double_parked", "charging"]:
             raise ValueError("Invalid vehicle state")
         self.state = new_state
+        if new_state == "outside":
+            self.stop_charging()
 
     def start_charging(self) -> None:
         """충전 시작"""
         if self.vehicle_type != "ev":
             raise ValueError("Only EV can start charging")
         self.state = "charging"
+        self.is_charging = True
+
+    def stop_charging(self) -> None:
+        """충전 종료"""
+        self.state = "outside"
+        self.is_charging = False
+        self.battery_level = 100  # 완충 상태로 설정
 
     def update_battery(self, elapsed_time: float) -> None:
         """배터리 잔량 업데이트"""
@@ -69,4 +80,14 @@ class Vehicle:
         if self.state == "charging" and self.battery_level < 100.0:
             # 선형적으로 배터리 증가 (1시간당 50% 충전 가정)
             charge_rate = 50.0 / 3600  # %/초
-            self.battery_level = min(100.0, self.battery_level + charge_rate * elapsed_time) 
+            self.battery_level = min(100.0, self.battery_level + charge_rate * elapsed_time)
+
+    def __str__(self) -> str:
+        """문자열 표현"""
+        status = f"Vehicle(id={self.vehicle_id}, type={self.vehicle_type}, " \
+                f"building={self.building_id}, state={self.state}"
+        if self.vehicle_type == "ev":
+            status += f", battery={self.battery_level:.1f}%, charging={self.is_charging})"
+        else:
+            status += ")"
+        return status 
