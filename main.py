@@ -40,10 +40,9 @@ from src.config import (
 from src.simulation.parking_simulation import ParkingSimulation
 from src.models.parking_manager import ParkingManager
 from src.utils.logger import SimulationLogger
-from src.utils.visualizer import ParkingVisualizer
 from src.models.vehicle import Vehicle
-from parking_animation import prepare_frames_from_log, ParkingAnimationVisualizer, COLORS, FLOORS, PARKING_MAPS
 from parking_layout_visualizer import ParkingLayoutVisualizer
+from src.utils.parking_animation import run_animation
 
 def load_vehicles() -> Dict:
     """vehicles.json 파일에서 차량 데이터를 로드합니다."""
@@ -84,172 +83,15 @@ def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]
     
     return vehicles
 
-def parse_arguments():
-    """
-    커맨드 라인 인자를 파싱합니다.
-    
-    Returns:
-        파싱된 인자
-    """
-    parser = argparse.ArgumentParser(
-        description="주차장 시뮬레이션 - EV 충전소 최적화",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    
-    # 시뮬레이션 기본 설정
-    sim_group = parser.add_argument_group('시뮬레이션 설정')
-    sim_group.add_argument(
-        "--seed", 
-        type=int, 
-        default=42,
-        help="난수 생성기 시드"
-    )
-    
-    sim_group.add_argument(
-        "--time", 
-        type=int, 
-        default=86400,
-        help="시뮬레이션 시간 (초)"
-    )
-    
-    # 차량 설정
-    vehicle_group = parser.add_argument_group('차량 설정')
-    vehicle_group.add_argument(
-        "--normal", 
-        type=int, 
-        default=830,  # 일반 차량 수 증가
-        help="일반 차량 수"
-    )
-    
-    vehicle_group.add_argument(
-        "--ev", 
-        type=int, 
-        default=36,   # 전기차 수 증가
-        help="전기차 수"
-    )
-    
-    # 주차장 설정
-    parking_group = parser.add_argument_group('주차장 설정')
-    parking_group.add_argument(
-        "--total-capacity",
-        type=int,
-        default=686,  # 전체 주차면 수 (일반차량 + 전기차)
-        help="전체 주차면 용량"
-    )
-    
-    parking_group.add_argument(
-        "--ev-chargers",
-        type=int,
-        default=36,    # 기본 충전소 수
-        help="설치할 EV 충전소 수"
-    )
-    
-    # 결과 저장 설정
-    output_group = parser.add_argument_group('결과 저장 설정')
-    output_group.add_argument(
-        "--no-save-csv", 
-        action="store_true",
-        help="CSV 파일 저장 비활성화"
-    )
-    
-    output_group.add_argument(
-        "--output-prefix", 
-        type=str, 
-        default="results_sim",
-        help="출력 파일 이름 접두사"
-    )
-    
-    # 시각화 설정
-    viz_group = parser.add_argument_group('시각화 설정')
-    viz_group.add_argument(
-        "--visualize", 
-        action="store_true",
-        help="시뮬레이션 결과 시각화"
-    )
-    
-    viz_group.add_argument(
-        "--visualize-layout",
-        action="store_true",
-        help="주차장 레이아웃 시각화"
-    )
-    
-    viz_group.add_argument(
-        "--layout-dpi",
-        type=int,
-        default=100,
-        help="레이아웃 이미지 해상도 (DPI)"
-    )
-    
-    viz_group.add_argument(
-        "--layout-cell-size",
-        type=float,
-        default=1.0,
-        help="레이아웃 셀 크기"
-    )
-    
-    viz_group.add_argument(
-        "--layout-font-size",
-        type=int,
-        default=10,
-        help="레이아웃 폰트 크기"
-    )
-    
-    viz_group.add_argument(
-        "--animation",
-        action="store_true",
-        help="시뮬레이션 결과 애니메이션 생성"
-    )
-    
-    viz_group.add_argument(
-        "--fps",
-        type=int,
-        default=5,
-        help="애니메이션 프레임 속도 (FPS)"
-    )
-    
-    viz_group.add_argument(
-        "--dpi",
-        type=int,
-        default=100,
-        help="이미지 해상도 (DPI)"
-    )
-    
-    viz_group.add_argument(
-        "--speed",
-        type=float,
-        default=60.0,
-        help="시뮬레이션 속도 (실제 1초당 시뮬레이션 시간 초)"
-    )
-    
-    # 최적화 설정
-    opt_group = parser.add_argument_group('최적화 설정')
-    opt_group.add_argument(
-        "--optimize",
-        action="store_true",
-        help="충전소 배치 최적화 수행"
-    )
-    
-    opt_group.add_argument(
-        "--optimization-trials",
-        type=int,
-        default=10,
-        help="최적화 시도 횟수"
-    )
-    
-    opt_group.add_argument(
-        "--min-chargers",
-        type=int,
-        default=4,
-        help="최소 충전소 수"
-    )
-    
-    opt_group.add_argument(
-        "--max-chargers",
-        type=int,
-        default=12,
-        help="최대 충전소 수"
-    )
-
+def parse_args():
+    parser = argparse.ArgumentParser(description='주차장 시뮬레이션')
+    parser.add_argument("--no-save-csv", action="store_true", help="CSV 저장 안 함")
+    parser.add_argument("--visualize-layout", action="store_true", help="주차장 레이아웃 시각화")
+    parser.add_argument("--animation", action="store_true", help="주차장 상태 애니메이션 실행")
+    parser.add_argument("--save-video", action="store_true", help="애니메이션을 MP4로 저장")
+    parser.add_argument("--animation-speed", type=float, default=0.1, help="애니메이션 속도 (초)")
+    parser.add_argument("--layout", type=str, default='config/layout.json', help='레이아웃 파일 경로')
+    parser.add_argument("--log", type=str, help='시뮬레이션 로그 파일 경로')
     return parser.parse_args()
 
 
@@ -261,7 +103,7 @@ def create_output_directory(prefix):
         prefix: 디렉토리 이름 접두사
         
     Returns:
-        생성된 디렉토리 경로
+ p       생성된 디렉토리 경로
     """
     # 현재 시간을 포함한 디렉토리명 생성
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -410,21 +252,18 @@ def main():
     """
     메인 실행 함수
     """
-    global PARKING_MAPS
-    
-    # 인자 파싱
-    args = parse_arguments()
+    args = parse_args()
     
     # 시드 설정
-    random.seed(args.seed)
+    random.seed(SEED)
     
     # 결과 저장 디렉토리 설정
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_dir = f"../results_sim_{timestamp}"  # 'results_' 중복 제거
+    results_dir = f"../results_sim_{timestamp}"
     os.makedirs(results_dir, exist_ok=True)
     print(f"[INFO] 결과 저장 디렉토리 생성: {results_dir}")
     
-    # 로거 초기화 (파일 경로 지정)
+    # 로거 초기화
     logger = SimulationLogger(
         log_file=os.path.join(results_dir, "simulation_log.csv"),
         stats_file=os.path.join(results_dir, "simulation_stats.json")
@@ -434,7 +273,7 @@ def main():
     parking_manager = ParkingManager()
     
     # 충전소 할당
-    parking_manager.allocate_chargers(args.ev_chargers)
+    parking_manager.allocate_chargers(36)
     
     # 레이아웃 시각화 요청이 있는 경우
     if args.visualize_layout:
@@ -450,94 +289,19 @@ def main():
         visualizer.visualize_all_floors()
         
         print(f"\n[INFO] 주차장 레이아웃 및 충전소 위치가 '{results_dir}' 디렉토리에 저장되었습니다.")
-
-    # 최적화 모드
-    if args.optimize:
-        print(f"[INFO] EV 충전소 최적 배치 탐색을 시작합니다...")
-        print(f"[INFO] 충전소 수 범위: {args.min_chargers}~{args.max_chargers}개")
-        print(f"[INFO] 각 설정당 시도 횟수: {args.optimization_trials}회")
-        
-        best_metrics = None
-        best_charger_count = None
-        
-        # 충전소 수를 변경해가며 최적화
-        for charger_count in range(args.min_chargers, args.max_chargers + 1):
-            print(f"\n[INFO] 충전소 {charger_count}개 배치에 대한 시뮬레이션 시작...")
-            
-            # 여러 번 시도하여 평균 성능 측정
-            trial_metrics = []
-            for trial in range(args.optimization_trials):
-                print(f"  - 시도 {trial + 1}/{args.optimization_trials}")
-                
-                sim = ParkingSimulation(
-                    parking_capacity=args.total_capacity - charger_count,
-                    charger_capacity=charger_count,
-                    sim_time=args.time,
-                    random_seed=args.seed + trial,
-                    normal_count=args.normal,
-                    ev_count=args.ev
-                )
-                sim.run()
-                
-                # 성능 지표 계산
-                metrics = {
-                    'total_cost': sim.logger.calculate_charger_cost(charger_count),
-                    'idle_rate': sim.logger.calculate_charger_idle_rate(args.time, charger_count),
-                    'charge_fail_rate': sim.logger.calculate_charge_fail_rate(),
-                    'parking_fail_rate': sim.logger.calculate_parking_fail_rate()
-                }
-                trial_metrics.append(metrics)
-            
-            # 평균 성능 계산
-            avg_metrics = {
-                key: sum(m[key] for m in trial_metrics) / len(trial_metrics)
-                for key in trial_metrics[0].keys()
-            }
-            
-            # 목적 함수 계산 (비용과 실패율의 가중 합)
-            objective = (
-                avg_metrics['total_cost'] * 0.4 +
-                avg_metrics['idle_rate'] * 0.2 * 1000000 +
-                avg_metrics['charge_fail_rate'] * 0.2 * 1000000 +
-                avg_metrics['parking_fail_rate'] * 0.2 * 1000000
-            )
-            
-            print(f"\n[INFO] 충전소 {charger_count}개 배치 결과:")
-            print(f"  - 총 비용: {avg_metrics['total_cost']:,}원")
-            print(f"  - 충전소 공실률: {avg_metrics['idle_rate']*100:.2f}%")
-            print(f"  - 충전 실패율: {avg_metrics['charge_fail_rate']*100:.2f}%")
-            print(f"  - 주차 실패율: {avg_metrics['parking_fail_rate']*100:.2f}%")
-            
-            # 더 나은 결과를 찾았다면 업데이트
-            if best_metrics is None or objective < best_metrics['objective']:
-                best_metrics = avg_metrics
-                best_metrics['objective'] = objective
-                best_charger_count = charger_count
-        
-        print(f"\n[INFO] 최적화 완료!")
-        print(f"[INFO] 최적 충전소 수: {best_charger_count}개")
-        print(f"[INFO] 최적 성능 지표:")
-        print(f"  - 총 비용: {best_metrics['total_cost']:,}원")
-        print(f"  - 충전소 공실률: {best_metrics['idle_rate']*100:.2f}%")
-        print(f"  - 충전 실패율: {best_metrics['charge_fail_rate']*100:.2f}%")
-        print(f"  - 주차 실패율: {best_metrics['parking_fail_rate']*100:.2f}%")
-        
-        # 최적 설정으로 마지막 시뮬레이션 실행
-        args.ev_chargers = best_charger_count
     
-    # 일반 시뮬레이션 실행
-    print(f"\n[INFO] 시뮬레이션을 시작합니다...")
-    print(f"[INFO] 설정:")
-    print(f"  - 일반 차량: {args.normal}대")
-    print(f"  - 전기차: {args.ev}대")
-    print(f"  - 충전소: {args.ev_chargers}개")
-    print(f"  - 총 주차면: {args.total_capacity}면")
+    # 시뮬레이션 설정 출력
+    print("\n=== 시뮬레이션 설정 ===")
+    print(f"  - 일반 차량: {830}대")
+    print(f"  - 전기차: {36}대")
+    print(f"  - 충전소: {36}개")
+    print(f"  - 총 주차면: {686}면")
     
     # SimPy 환경 초기화
     env = simpy.Environment()
     
     # 시뮬레이션 객체 생성
-    total_vehicles = args.normal + args.ev
+    total_vehicles = 830 + 36
     sim = ParkingSimulation(
         env=env,
         parking_manager=parking_manager,
@@ -554,7 +318,7 @@ def main():
         sim.outside_vehicles[vehicle.vehicle_id] = vehicle
     
     # 시뮬레이션 실행
-    sim.run(until=args.time)
+    sim.run(until=SIM_TIME)
     
     # 결과 요약 출력
     print("\n=== 시뮬레이션 결과 ===")
@@ -565,8 +329,8 @@ def main():
     
     # 최적화/운영 지표 출력
     print("\n--- 최적화/운영 지표 ---")
-    total_cost = sim.logger.calculate_charger_cost(args.ev_chargers)
-    idle_rate = sim.logger.calculate_charger_idle_rate(args.time, args.ev_chargers)
+    total_cost = sim.logger.calculate_charger_cost(36)
+    idle_rate = sim.logger.calculate_charger_idle_rate(SIM_TIME, 36)
     charge_fail_rate = sim.logger.calculate_charge_fail_rate()
     parking_fail_rate = sim.logger.calculate_parking_fail_rate()
     
@@ -584,53 +348,12 @@ def main():
         # 시뮬레이션 요약 저장
         sim.save_summary_to_file(results_dir)
     
-    # 그래프 생성 및 저장
-    arrivals_path = os.path.join(results_dir, "arrivals_by_hour.png")
-    charging_path = os.path.join(results_dir, "charging_patterns.png")
-    
-    sim.logger.set_graph_paths(arrivals_path, charging_path)
-    sim.generate_plots()
-    
-    # 시각화 (마지막에 한 번만)
-    if args.visualize:
-        print("\n[INFO] 최종 주차장 상태 시각화 중...")
-        df = sim.logger.get_dataframe()
-        visualizer = ParkingVisualizer()
-        frames = visualizer.generate_animation_data(df)
-        
-        if len(frames) > 0:
-            # 최종 상태만 저장
-            visualizer.save_state_image(
-                frames[-1]['occupied'], 
-                frames[-1]['charging'], 
-                os.path.join(results_dir, "final_parking_state.png"),
-                f"최종 주차장 상태 (시간: {frames[-1]['time']/3600:.1f}시간)"
-            )
-            print(f"[INFO] 최종 상태 이미지가 {results_dir} 디렉토리에 저장되었습니다.")
-    
-    # 애니메이션 (요청된 경우에만)
+    # 애니메이션 실행
     if args.animation:
-        print("\n[INFO] 4층 통합 주차장 상태 애니메이션 생성 중...")
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        animation_filename = f"parking_animation_4floors_{timestamp}.mp4"
-        animation_path = os.path.join(results_dir, animation_filename)
-        
-        df = sim.logger.get_dataframe()
-        
-        print("[INFO] 4층 통합 애니메이션 데이터 준비 중...")
-        frames = prepare_frames_from_log(df, frame_interval=30.0)
-        
-        if frames:
-            print(f"[INFO] 4층 통합 애니메이션 생성 중... (FPS: {args.fps}, DPI: {args.dpi})")
-            visualizer = ParkingAnimationVisualizer(FLOORS, PARKING_MAPS, COLORS)
-            visualizer.animate(frames, animation_path, fps=args.fps, dpi=args.dpi)
-            print(f"[INFO] 4층 통합 애니메이션이 저장되었습니다: {animation_path}")
-        else:
-            print("[ERROR] 애니메이션 프레임을 생성할 수 없습니다.")
-            return 1
+        print("\n주차장 상태 애니메이션을 시작합니다...")
+        log_file = os.path.join(results_dir, "simulation_log.csv")
+        run_animation("json", log_file, args.animation_speed, args.save_video)
     
-    print("\n[INFO] 시뮬레이션이 완료되었습니다.")
-    print(f"[INFO] 모든 결과가 {results_dir} 디렉토리에 저장되었습니다.")
     return 0
 
 
