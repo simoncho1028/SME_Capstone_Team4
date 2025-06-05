@@ -537,10 +537,12 @@ def main():
     env = simpy.Environment()
     
     # 시뮬레이션 객체 생성
+    total_vehicles = args.normal + args.ev
     sim = ParkingSimulation(
         env=env,
         parking_manager=parking_manager,
-        logger=logger
+        logger=logger,
+        total_vehicle_count=total_vehicles
     )
     
     # 차량 데이터 로드 및 차량 생성

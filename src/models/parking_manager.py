@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from src.models.vehicle import Vehicle
 from src.config import PARKING_MAPS, CELL_PARK, CELL_CHARGER
+from parking_system import ParkingSystem  # ParkingSystem import 추가
 
 class ParkingManager:
     """주차장 관리자 클래스"""
@@ -32,6 +33,9 @@ class ParkingManager:
         
         # 로거 추가
         self.logger = None
+        
+        # ParkingSystem 인스턴스 추가
+        self.parking_system = ParkingSystem()
         
         # 주차장 맵 초기화
         self._initialize_parking_map()
@@ -103,15 +107,22 @@ class ParkingManager:
                     vehicle.start_charging(self.env.now)
                 return True
         
-        # 일반 주차면에 배정
-        available_spots = [spot for spot in self.available_spots if self.is_spot_available(spot)]
+        # 일반 주차면에 최단 거리 기반으로 배정
+        spot_assignment = self.parking_system.assign_parking_spot({
+            "id": vehicle.vehicle_id,
+            "building": vehicle.building_id
+        })
         
-        if available_spots:
-            spot = random.choice(available_spots)
-            self.parked_vehicles[vehicle.vehicle_id] = spot
-            self.parking_spots[spot] = vehicle.vehicle_id
-            vehicle.update_state("parked")
-            return True
+        if spot_assignment:
+            spot = spot_assignment["assigned_spot"]
+            spot_tuple = (spot["floor"], spot["x"], spot["y"])
+            
+            # 해당 spot이 이미 사용 중인지 확인
+            if self.is_spot_available(spot_tuple):
+                self.parked_vehicles[vehicle.vehicle_id] = spot_tuple
+                self.parking_spots[spot_tuple] = vehicle.vehicle_id
+                vehicle.update_state("parked")
+                return True
         
         return False
 

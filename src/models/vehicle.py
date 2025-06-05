@@ -164,14 +164,16 @@ class Vehicle:
         """차량을 주차 처리"""
         if parking_manager.park_vehicle(self):
             # 주차 성공 로그 기록
+            spot = parking_manager.parked_vehicles[self.vehicle_id]
             parking_manager.logger.log_event(
                 time=parking_manager.env.now,
                 vehicle_id=self.vehicle_id,
                 event="park_success",
-                floor=floor,
-                pos=position,
+                floor=spot[0],
+                pos=(spot[1], spot[2]),
                 battery=self.battery_level,
-                parking_duration=self.parking_duration  # 주차 시간 정보 추가
+                building=self.building_id,  # 건물 정보 추가
+                parking_duration=self.parking_duration
             )
             
             # 통계 업데이트
@@ -184,8 +186,8 @@ class Vehicle:
                     time=parking_manager.env.now,
                     vehicle_id=self.vehicle_id,
                     event="charge_start",
-                    floor=floor,
-                    pos=position,
+                    floor=spot[0],
+                    pos=(spot[1], spot[2]),
                     battery=self.battery_level
                 )
         else:
@@ -193,5 +195,6 @@ class Vehicle:
             parking_manager.logger.log_event(
                 time=parking_manager.env.now,
                 vehicle_id=self.vehicle_id,
-                event="park_fail"
+                event="park_fail",
+                building=self.building_id  # 건물 정보 추가
             ) 

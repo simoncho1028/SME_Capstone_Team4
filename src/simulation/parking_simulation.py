@@ -18,7 +18,8 @@ class ParkingSimulation:
     def __init__(self,
                  env: simpy.Environment,
                  parking_manager: ParkingManager,
-                 logger: SimulationLogger):
+                 logger: SimulationLogger,
+                 total_vehicle_count: int = 866):
         """
         시뮬레이션 객체를 초기화합니다.
         
@@ -26,10 +27,12 @@ class ParkingSimulation:
             env: SimPy 환경
             parking_manager: 주차장 관리자
             logger: 이벤트 로깅을 위한 로거 객체
+            total_vehicle_count: 전체 차량 수 (CLI에서 지정된 --normal + --ev 값)
         """
         self.env = env
         self.parking_manager = parking_manager
         self.logger = logger
+        self.total_vehicle_count = total_vehicle_count
         
         # parking_manager에 env 설정
         self.parking_manager.set_env(env)
@@ -154,8 +157,8 @@ class ParkingSimulation:
         # 하루의 시작 시간 계산 (현재 시간의 0시)
         day_start = current_time - (current_time % 86400)
         
-        # 입차할 총 차량 수 결정 (866대의 80~90%)
-        total_entries = int(866 * np.random.uniform(0.8, 0.9))
+        # 입차할 총 차량 수 결정 (전체 차량 수의 80~90%)
+        total_entries = int(self.total_vehicle_count * np.random.uniform(0.8, 0.9))
         
         # 시간대별 입차량 계산
         hourly_entries = []
