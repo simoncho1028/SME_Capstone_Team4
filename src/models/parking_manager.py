@@ -205,6 +205,8 @@ class ParkingManager:
         Args:
             num_chargers: 할당할 충전소 수
         """
+        print("\n[DEBUG] === 충전소 할당 시작 ===")
+        
         # 기존 충전소 초기화
         self.ev_chargers.clear()
         self.available_chargers.clear()
@@ -214,14 +216,21 @@ class ParkingManager:
         # 모든 사용 가능한 주차면 중에서 랜덤하게 선택
         all_spots = []
         for floor in self.available_spots_by_floor:
-            all_spots.extend(self.available_spots_by_floor[floor])
+            spots = self.available_spots_by_floor[floor]
+            print(f"[DEBUG] {floor}층 사용 가능한 주차면: {len(spots)}개")
+            all_spots.extend(spots)
+        
+        print(f"[DEBUG] 전체 사용 가능한 주차면: {len(all_spots)}개")
         
         # 충전소로 변환할 주차면 선택
         selected_spots = random.sample(all_spots, min(num_chargers, len(all_spots)))
+        print(f"[DEBUG] 선택된 충전소 위치: {len(selected_spots)}개")
         
         # 선택된 주차면을 충전소로 변환
+        floor_counts = defaultdict(int)
         for spot in selected_spots:
             floor = spot[0]  # (floor, row, col)
+            floor_counts[floor] += 1
             
             # 일반 주차면 목록에서 제거
             if spot in self.available_spots:
@@ -237,12 +246,13 @@ class ParkingManager:
             # 전체 주차면/충전소 수 업데이트
             self.total_parking_spots -= 1
             self.total_charger_spots += 1
-            
-        print(f"[INFO] {len(selected_spots)}개의 충전소가 할당되었습니다.")
-        for floor in self.available_chargers_by_floor:
-            count = len(self.available_chargers_by_floor[floor])
-            if count > 0:
-                print(f"  - {floor}: {count}개")
+        
+        print("\n[DEBUG] 층별 충전소 할당 결과:")
+        for floor in sorted(floor_counts.keys()):
+            print(f"[DEBUG] - {floor}: {floor_counts[floor]}개")
+            print(f"[DEBUG]   위치: {self.available_chargers_by_floor[floor]}")
+        
+        print(f"\n[DEBUG] === 충전소 할당 완료 ({len(selected_spots)}개) ===\n")
 
     def handle_vehicle_entry(self, vehicle: Vehicle) -> None:
         """

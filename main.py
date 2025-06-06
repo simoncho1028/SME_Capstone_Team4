@@ -352,7 +352,29 @@ def main():
     if args.animation:
         print("\n주차장 상태 애니메이션을 시작합니다...")
         log_file = os.path.join(results_dir, "simulation_log.csv")
-        run_animation("json", log_file, args.animation_speed, args.save_video)
+        
+        # 충전소 위치 정보 수집
+        charger_positions = defaultdict(list)
+        for floor, row, col in parking_manager.ev_chargers:
+            # 층 이름을 원래 형식으로 변환
+            if floor == 'GF':
+                original_floor = 'Ground'
+            elif floor == 'B1F':
+                original_floor = 'B1'
+            elif floor == 'B2F':
+                original_floor = 'B2'
+            elif floor == 'B3F':
+                original_floor = 'B3'
+            else:
+                original_floor = floor
+            charger_positions[original_floor].append((row, col))
+        
+        print(f"[INFO] 충전소 위치 정보:")
+        for floor in sorted(charger_positions.keys()):
+            print(f"  - {floor}: {len(charger_positions[floor])}개")
+            print(f"    위치: {charger_positions[floor]}")
+        
+        run_animation("json", log_file, args.animation_speed, args.save_video, charger_positions)
     
     return 0
 

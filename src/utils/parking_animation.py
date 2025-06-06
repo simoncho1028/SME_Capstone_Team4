@@ -32,8 +32,16 @@ class ParkingAnimator:
         'X': '#FFA500',    # 출구: 주황색
         'B1': '#ADD8E6',   # 아파트: 연한 파란색
         'O': '#FF6B6B',    # 주차장 점유중: 빨간색
-        'C': '#4CAF50',    # EV 충전소: 진한 초록색
-        'CO': '#FF4500'    # EV 충전소 점유중: 진한 주황색
+        'C': '#2E8B57',    # EV 충전소: 진한 초록색 (Sea Green)
+        'CO': '#FF4500',   # EV 충전소 점유중: 진한 주황색
+        '1동': '#ADD8E6',  # 1동: 연한 파란색
+        '2동': '#ADD8E6',  # 2동: 연한 파란색
+        '3동': '#ADD8E6',  # 3동: 연한 파란색
+        '4동': '#ADD8E6',  # 4동: 연한 파란색
+        '5동': '#ADD8E6',  # 5동: 연한 파란색
+        '6동': '#ADD8E6',  # 6동: 연한 파란색
+        '7동': '#ADD8E6',  # 7동: 연한 파란색
+        '8동': '#ADD8E6'   # 8동: 연한 파란색
     }
     
     # 범례 레이블
@@ -44,13 +52,15 @@ class ParkingAnimator:
         'X': '출구',
         'O': '주차중',
         'C': 'EV 충전소',
-        'CO': '충전중'
+        'CO': '충전중',
+        '1동': '아파트 동'
     }
 
     def __init__(self, json_dir: str = "json", charger_positions=None):
         """애니메이터 초기화"""
         self.map_loader = ParkingMapLoader(json_dir)
         self.layouts = self.map_loader.load_all_maps()
+        print(f"[DEBUG] Loaded layouts: {list(self.layouts.keys())}")  # 디버그 출력 추가
         
         # 층 이름 매핑
         self.floor_mapping = {
@@ -63,6 +73,7 @@ class ParkingAnimator:
         
         # 충전소 위치 저장
         self.charger_positions = charger_positions or {}
+        print(f"[DEBUG] Charger positions: {self.charger_positions}")  # 디버그 출력 추가
         
         # 그림 설정
         plt.ioff()  # 인터랙티브 모드 끄기
@@ -111,11 +122,13 @@ class ParkingAnimator:
     def _setup_initial_layout(self):
         """초기 레이아웃 설정"""
         floor_titles = {
-            'GF': '지상층',
+            'GF': '지상',
             'B1F': '지하 1층',
             'B2F': '지하 2층',
             'B3F': '지하 3층'
         }
+        
+        print(f"[DEBUG] Setting up layout for floors: {list(self.layouts.keys())}")
         
         for idx, (floor, layout) in enumerate(self.layouts.items()):
             ax = self.axes[idx // 2][idx % 2]
@@ -123,43 +136,63 @@ class ParkingAnimator:
             
             height = len(layout)
             width = len(layout[0])
+            print(f"[DEBUG] Floor {floor}: {height}x{width} grid")
             
-            # 각 셀 그리기
+            # 각 셀 그리기 (기본 레이아웃)
             for i in range(height):
                 for j in range(width):
                     cell = layout[i][j]
-                    # 충전소 위치 확인
-                    is_charger = False
-                    if self.charger_positions:
-                        sim_floor = self.reverse_floor_mapping[floor]
-                        if sim_floor in self.charger_positions and (i, j) in self.charger_positions[sim_floor]:
-                            is_charger = True
                     
-                    # 색상 결정
-                    if is_charger:
-                        color = self.COLORS['C']
+                    # 기본 색상 결정
+                    if cell == 'R':  # 길
+                        color = self.COLORS['R']
+                    elif cell == 'P':  # 주차면
+                        # 충전소인지 확인
+                        is_charger = False
+                        if self.charger_positions:
+                            # 층 이름 변환
+                            sim_floor = None
+                            if floor == 'GF':
+                                sim_floor = 'Ground'
+                            elif floor == 'B1F':
+                                sim_floor = 'B1'
+                            elif floor == 'B2F':
+                                sim_floor = 'B2'
+                            elif floor == 'B3F':
+                                sim_floor = 'B3'
+                            
+                            if sim_floor in self.charger_positions and (i, j) in self.charger_positions[sim_floor]:
+                                is_charger = True
+                                print(f"[DEBUG] Found charger at floor {floor} position ({i}, {j})")
+                        
+                        color = self.COLORS['C'] if is_charger else self.COLORS['P']
+                    elif cell == 'E':  # 입구
+                        color = self.COLORS['E']
+                    elif cell == 'X':  # 출구
+                        color = self.COLORS['X']
+                    elif cell in ['1동', '2동', '3동', '4동', '5동', '6동', '7동', '8동']:
+                        color = self.COLORS[cell]
                     else:
-                        color = self.COLORS.get(cell, 'white')
+                        print(f"[WARNING] Unknown cell type: {cell}")
+                        color = 'white'
                     
-                    rect = plt.Rectangle((j, height-i-1), 1, 1, 
-                                      facecolor=color, 
-                                      edgecolor='black', 
-                                      linewidth=0.5)
+                    # 셀 그리기
+                    rect = plt.Rectangle((j, height-i-1), 1, 1, facecolor=color, edgecolor='black', linewidth=0.5)
                     ax.add_patch(rect)
-                    # 주차 가능한 공간의 Rectangle 객체 저장
-                    if cell == 'P' or is_charger:
+                    
+                    # 주차면인 경우 rectangles 딕셔너리에 저장
+                    if cell == 'P':
                         self.rectangles[floor][(i, j)] = rect
-                        self.parking_state[(floor, (i, j))] = 'empty'
             
-            ax.set_xlim(-0.2, width+0.2)
-            ax.set_ylim(-0.2, height+0.2)
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.grid(True, color='black', linewidth=0.5)
+            # 그리드 설정
+            ax.set_xticks(range(width))
+            ax.set_yticks(range(height))
+            ax.grid(True)
+            ax.set_aspect('equal')
 
     def update_spot(self, floor: str, position: tuple, status: str):
         """특정 주차 공간의 상태 업데이트"""
-        # 층 이름 변환
+        # 층 이름 변환 (Ground -> GF, B1 -> B1F 등)
         internal_floor = self.floor_mapping.get(floor, floor)
         
         if position in self.rectangles[internal_floor]:
@@ -171,9 +204,9 @@ class ParkingAnimator:
             if status == 'empty':
                 color = self.COLORS['C'] if is_charger else self.COLORS['P']
             elif status == 'charging':
-                color = self.COLORS['CO']
-            else:  # occupied
-                color = self.COLORS['O']
+                color = self.COLORS['CO']  # 충전 중인 경우
+            elif status == 'occupied':
+                color = self.COLORS['CO'] if is_charger else self.COLORS['O']
             
             self.rectangles[internal_floor][position].set_facecolor(color)
             self.parking_state[(internal_floor, position)] = status
@@ -186,6 +219,9 @@ class ParkingAnimator:
         # 관련 이벤트만 필터링
         events_df = df[df['event'].isin(['park_success', 'depart', 'charge_start'])].copy()
         events_df = events_df.sort_values('time')  # 시간순 정렬
+        
+        # 주차 상태 초기화
+        current_state = {}  # (floor, pos) -> status
         
         if save_path:  # MP4로 저장
             # 시간 간격으로 이벤트 그룹화
@@ -203,16 +239,43 @@ class ParkingAnimator:
                 
                 if len(interval_events) > 0:
                     frame_events = []
+                    
+                    # 현재 간격의 모든 이벤트 처리
                     for _, row in interval_events.iterrows():
                         if pd.isna(row['pos_r']) or pd.isna(row['pos_c']) or pd.isna(row['floor']):
                             continue
                         
+                        floor = row['floor']
+                        pos = (int(row['pos_r']), int(row['pos_c']))
+                        event = row['event']
+                        
+                        # 이벤트에 따른 상태 결정
+                        if event == 'park_success':
+                            # 충전소인지 확인
+                            is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
+                            status = 'occupied'
+                            current_state[(floor, pos)] = status
+                        elif event == 'charge_start':
+                            status = 'charging'
+                            current_state[(floor, pos)] = status
+                        else:  # depart
+                            status = 'empty'
+                            if (floor, pos) in current_state:
+                                del current_state[(floor, pos)]
+                        
                         frame_events.append({
-                            'floor': row['floor'],
-                            'pos': (int(row['pos_r']), int(row['pos_c'])),
-                            'status': 'occupied' if row['event'] == 'park_success' else \
-                                     'charging' if row['event'] == 'charge_start' else \
-                                     'empty',
+                            'floor': floor,
+                            'pos': pos,
+                            'status': status,
+                            'time': end_time
+                        })
+                    
+                    # 현재 상태에 있는 모든 점유 공간 추가
+                    for (floor, pos), status in current_state.items():
+                        frame_events.append({
+                            'floor': floor,
+                            'pos': pos,
+                            'status': status,
                             'time': end_time
                         })
                     
@@ -220,8 +283,17 @@ class ParkingAnimator:
                         frames.append(frame_events)
 
             def update(frame_events):
+                # 모든 주차면을 빈 상태로 초기화
+                for floor in self.rectangles:
+                    for pos in self.rectangles[floor]:
+                        is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
+                        color = self.COLORS['C'] if is_charger else self.COLORS['P']
+                        self.rectangles[floor][pos].set_facecolor(color)
+                
+                # 현재 프레임의 이벤트 적용
                 for event in frame_events:
                     self.update_spot(event['floor'], event['pos'], event['status'])
+                
                 self.fig.suptitle(f'주차장 시뮬레이션 - {frame_events[0]["time"]/3600:.1f}시간', fontsize=16, y=0.95)
                 
                 # 모든 axes의 모든 패치 반환
@@ -279,10 +351,14 @@ class ParkingAnimator:
                 # 이벤트에 따른 상태 결정
                 if event == 'park_success':
                     status = 'occupied'
+                    current_state[(floor, pos)] = status
                 elif event == 'charge_start':
                     status = 'charging'
+                    current_state[(floor, pos)] = status
                 else:  # depart
                     status = 'empty'
+                    if (floor, pos) in current_state:
+                        del current_state[(floor, pos)]
                 
                 self.fig.suptitle(f'주차장 시뮬레이션 - {row["time"]/3600:.1f}시간', fontsize=16, y=0.95)
                 self.update_spot(floor, pos, status)
