@@ -97,7 +97,9 @@ class ParkingSimulation:
         # park_vehicle의 반환값: (주차성공, charge_fail)
         park_success, charge_fail = self.parking_manager.park_vehicle(vehicle)
         if charge_fail:
-            # log 기록 없이 통계에만 반영
+            # charge_fail 이벤트 로깅 추가
+            self.log_event(vehicle, "charge_fail")
+            # 통계에 반영
             if "charge_fail" not in self.stats:
                 self.stats["charge_fail"] = 0
             self.stats["charge_fail"] += 1
@@ -149,10 +151,27 @@ class ParkingSimulation:
         # 하루의 시작 시간 계산 (현재 시간의 0시)
         day_start = current_time - (current_time % 86400)
         
-        # 입차할 총 차량 수 결정 (전체 차량 수의 80~90%)
-        total_entries = int(self.total_vehicle_count * np.random.uniform(0.8, 0.9))
-        
-        # 시간대별 입차량 계산
+        # --- 전체 차량 pool에서 EV/normal 분리 ---
+        all_vehicles = list(self.active_vehicles.values()) + list(self.outside_vehicles.values())
+        ev_vehicles = [v for v in all_vehicles if v.vehicle_type == "ev"]
+        normal_vehicles = [v for v in all_vehicles if v.vehicle_type != "ev"]
+
+        # 이미 주차 중인 차량은 제외 (active_vehicles에 있는 차량은 제외)
+        ev_candidates = [v for v in ev_vehicles if v.vehicle_id not in self.active_vehicles]
+        normal_candidates = [v for v in normal_vehicles if v.vehicle_id not in self.active_vehicles]
+
+        # 매일 80~90% 입차 (EV/normal 각각)
+        ev_entries = int(len(ev_vehicles) * np.random.uniform(0.8, 0.9))
+        normal_entries = int(len(normal_vehicles) * np.random.uniform(0.8, 0.9))
+
+        # 랜덤 샘플링
+        ev_today = random.sample(ev_candidates, min(ev_entries, len(ev_candidates)))
+        normal_today = random.sample(normal_candidates, min(normal_entries, len(normal_candidates)))
+        today_vehicles = ev_today + normal_today
+        random.shuffle(today_vehicles)
+
+        # 시간대별 입차량 계산 (전체 입차 차량 수 기준)
+        total_entries = len(today_vehicles)
         hourly_entries = []
         for ratio in normalized_entry_ratios:
             # ±10% 노이즈 추가
@@ -162,18 +181,19 @@ class ParkingSimulation:
         
         # 각 시간대별로 차량 입차 시간 샘플링
         self.daily_entry_plan.clear()
+        idx = 0
         for hour, entries in enumerate(hourly_entries):
             if entries > 0:
-                # 해당 시간대에 uniform하게 입차 시간 분배
                 hour_start = day_start + (hour * 3600)
                 entry_times = np.random.uniform(hour_start, hour_start + 3600, entries)
-                
-                # 입차할 차량 선택 및 계획 수립
                 for entry_time in sorted(entry_times):
-                    if self.outside_vehicles:  # 대기 중인 차량이 있는 경우
-                        vehicle_id = random.choice(list(self.outside_vehicles.keys()))
-                        vehicle = self.outside_vehicles.pop(vehicle_id)
+                    if idx < len(today_vehicles):
+                        vehicle = today_vehicles[idx]
+                        # outside_vehicles에서 제거 (입차 대기열에서만 제거)
+                        if vehicle.vehicle_id in self.outside_vehicles:
+                            self.outside_vehicles.pop(vehicle.vehicle_id)
                         self.daily_entry_plan.append((entry_time, vehicle))
+                        idx += 1
     
     def daily_planning_process(self):
         """매일 0시마다 새로운 입차 계획을 수립하는 프로세스"""
@@ -315,17 +335,13 @@ class ParkingSimulation:
             f.write(f"- 총 출차: {depart_count}회\n")
  
             # --- EV 충전 통계 집계 ---
-            ev_arrive = df[(df['type'] == 'ev') & (df['event'] == 'arrive') & (df['battery'] < 80)]
-            ev_ids = set(ev_arrive['id'])
-            charge_success = 0
-            charge_fail = 0
-            for vid in ev_ids:
-                sub = df[df['id'] == vid]
-                if (sub['event'] == 'charge_start').any():
-                    charge_success += 1
-                elif (sub['event'] == 'park_success').any():
-                    charge_fail += 1
-            charge_try = len(ev_ids)
+            ev_df = df[df['type'] == 'ev']
+            charge_starts = ev_df[ev_df['event'] == 'charge_start']
+            charge_fails = ev_df[ev_df['event'] == 'charge_fail']
+            
+            charge_try = len(charge_starts) + len(charge_fails)  # 실제 충전 시도 횟수
+            charge_success = len(charge_starts)  # 충전 시작된 횟수
+            charge_fail = len(charge_fails)  # 충전 실패 횟수
 
             f.write(f"- EV 충전 시도: {charge_try}회\n")
             f.write(f"  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)\n")
@@ -394,17 +410,13 @@ class ParkingSimulation:
         print(f"- 총 출차: {depart_count}회")
 
         # --- EV 충전 통계 집계 ---
-        ev_arrive = df[(df['type'] == 'ev') & (df['event'] == 'arrive') & (df['battery'] < 80)]
-        ev_ids = set(ev_arrive['id'])
-        charge_success = 0
-        charge_fail = 0
-        for vid in ev_ids:
-            sub = df[df['id'] == vid]
-            if (sub['event'] == 'charge_start').any():
-                charge_success += 1
-            elif (sub['event'] == 'park_success').any():
-                charge_fail += 1
-        charge_try = len(ev_ids)
+        ev_df = df[df['type'] == 'ev']
+        charge_starts = ev_df[ev_df['event'] == 'charge_start']
+        charge_fails = ev_df[ev_df['event'] == 'charge_fail']
+        
+        charge_try = len(charge_starts) + len(charge_fails)  # 실제 충전 시도 횟수
+        charge_success = len(charge_starts)  # 충전 시작된 횟수
+        charge_fail = len(charge_fails)  # 충전 실패 횟수
 
         print(f"- EV 충전 시도: {charge_try}회")
         print(f"  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)")

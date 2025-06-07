@@ -119,6 +119,7 @@ class ParkingManager:
                     self.parked_vehicles[vehicle.vehicle_id] = spot
                     self.parking_spots[spot] = vehicle.vehicle_id
                     vehicle.update_state("parked")
+                    # charge_fail 이벤트 로깅을 위해 True 반환
                     return (True, True)  # charge_fail: True
                 self.double_parked.add(vehicle.vehicle_id)
                 vehicle.update_state("double_parked")
