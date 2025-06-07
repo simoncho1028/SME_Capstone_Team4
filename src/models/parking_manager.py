@@ -5,6 +5,7 @@ from collections import defaultdict
 from src.models.vehicle import Vehicle
 from src.config import PARKING_MAPS, CELL_PARK, CELL_CHARGER
 from parking_system import ParkingSystem  # ParkingSystem import 추가
+from src.utils.helpers import sample_battery_level
 
 class ParkingManager:
     """주차장 관리자 클래스"""
@@ -115,6 +116,18 @@ class ParkingManager:
                 if self.env:
                     vehicle.start_charging(self.env.now)
                 return True
+            else:
+                # 충전소가 모두 점유 중이면 charge_fail 이벤트 기록
+                if self.logger:
+                    self.logger.log_event(
+                        time=self.env.now if self.env else 0,
+                        vehicle_id=vehicle.vehicle_id,
+                        event="charge_fail",
+                        floor=None,
+                        pos=None,
+                        battery=vehicle.battery_level
+                    )
+                return False
         
         # 일반 주차면에 최단 거리 기반으로 배정
         spot_assignment = self.parking_system.assign_parking_spot({
@@ -149,9 +162,9 @@ class ParkingManager:
         if vehicle.vehicle_id in self.double_parked:
             self.double_parked.remove(vehicle.vehicle_id)
             vehicle.update_state("outside")
-            # 전기차인 경우 배터리 랜덤 초기화
+            # 전기차인 경우 배터리 초기화
             if vehicle.vehicle_type == "ev":
-                vehicle.battery_level = random.uniform(0,100)
+                vehicle.battery_level = sample_battery_level()
             return True
         
         # 일반 주차된 차량 처리
@@ -167,9 +180,9 @@ class ParkingManager:
             self.parking_system.release_parking_spot(floor, row, col)
             
             vehicle.update_state("outside")
-            # 전기차인 경우 배터리 랜덤 초기화
+            # 전기차인 경우 배터리 초기화
             if vehicle.vehicle_type == "ev":
-                vehicle.battery_level = random.uniform(20.0, 80.0)
+                vehicle.battery_level = sample_battery_level()
             return True
         
         return False

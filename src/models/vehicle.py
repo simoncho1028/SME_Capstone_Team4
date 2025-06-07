@@ -3,7 +3,7 @@
 """
 from typing import Optional
 from dataclasses import dataclass
-from src.utils.helpers import sample_parking_duration
+from src.utils.helpers import sample_parking_duration, sample_battery_level
 import random
 import numpy as np
 
@@ -30,8 +30,7 @@ class Vehicle:
             raise ValueError("vehicle_type must be either 'normal' or 'ev'")
         
         if self.vehicle_type == "ev":
-            # 초기 배터리 레벨 설정 (20-80% 사이)
-            self.battery_level = random.uniform(0, 100) if self.battery_level is None else self.battery_level
+            self.battery_level = sample_battery_level() if self.battery_level is None else self.battery_level
             # GMM에서 충전 시간 샘플링
             self.assigned_charging_time = self._sample_charging_time_from_gmm()
         

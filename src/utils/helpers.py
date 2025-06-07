@@ -55,7 +55,7 @@ def sample_battery_level() -> float:
         float: 0-100 사이의 배터리 잔량
     """
     # 평균 40%, 표준편차 20%의 정규분포에서 샘플링
-    battery = np.random.normal(40, 20)
+    battery = np.random.normal(50, 20)
     # 0-100 범위로 제한
     return max(0, min(100, battery))
 

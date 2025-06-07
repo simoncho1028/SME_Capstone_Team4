@@ -19,7 +19,9 @@ class ParkingSimulation:
                  env: simpy.Environment,
                  parking_manager: ParkingManager,
                  logger: SimulationLogger,
-                 total_vehicle_count: int = 866):
+                 total_vehicle_count: int = 866,
+                 normal_count: int = None,
+                 ev_count: int = None):
         """
         시뮬레이션 객체를 초기화합니다.
         
@@ -28,11 +30,15 @@ class ParkingSimulation:
             parking_manager: 주차장 관리자
             logger: 이벤트 로깅을 위한 로거 객체
             total_vehicle_count: 전체 차량 수 (CLI에서 지정된 --normal + --ev 값)
+            normal_count: 일반 차량 수
+            ev_count: EV 차량 수
         """
         self.env = env
         self.parking_manager = parking_manager
         self.logger = logger
         self.total_vehicle_count = total_vehicle_count
+        self.normal_count = normal_count
+        self.ev_count = ev_count
         
         # parking_manager에 env 설정
         self.parking_manager.set_env(env)
@@ -274,15 +280,25 @@ class ParkingSimulation:
             f.write(f"총 진행 시간: {sim_time_str}\n\n")
             
             f.write("==== 주차장 세팅 ====\n")
-            f.write(f"전체 주차면: {stats['total_parking_spots']}면 (일반 주차면)\n")
-            f.write(f"전체 충전소: {stats['total_charger_spots']}개\n\n")
+            f.write(f"전체 주차면: {stats['total_parking_spots']}면 (일반 주차면) + {stats['total_charger_spots']}개 (충전소)\n")
+            f.write(f"전체 충전소: {stats['total_charger_spots']}개\n")
+            f.write(f"일반 차량: {self.normal_count if self.normal_count is not None else 'N/A'}대\n")
+            f.write(f"EV: {self.ev_count if self.ev_count is not None else 'N/A'}대\n\n")
             
+            # === 주차장 상태 (현재) ===
+            total_spots = stats['total_parking_spots'] + stats['total_charger_spots']
+            total_parked = stats['total_parked']
+            occupied_normal = sum(1 for v in self.parking_manager.parked_vehicles.values() if v not in self.parking_manager.ev_chargers)
+            occupied_charger = sum(1 for v in self.parking_manager.parked_vehicles.values() if v in self.parking_manager.ev_chargers)
+            available_normal = stats['total_parking_spots'] - occupied_normal
+            available_charger = stats['total_charger_spots'] - occupied_charger
+
             f.write("=== 주차장 상태 (현재) ===\n")
-            f.write(f"({sim_time_str}) 동안 진행 후 현재 상황\n")
-            f.write(f"총 주차된 차량: {stats['total_parked']}대\n")
-            f.write(f"이중주차 차량: {stats['double_parked']}대\n")
-            f.write(f"사용 가능한 주차면: {stats['available_spots']}면\n")
-            f.write(f"사용 가능한 충전소: {stats['available_ev_spots']}개\n\n")
+            f.write(f"현재 주차된 전체 차량: {total_parked} / 전체 주차면 {total_spots}대\n")
+            f.write(f"점유된 일반 주차면: {occupied_normal}대\n")
+            f.write(f"점유된 충전소: {occupied_charger}대\n")
+            f.write(f"사용 가능한 일반 주차면: {available_normal}면\n")
+            f.write(f"사용 가능한 충전소: {available_charger}개\n\n")
             
             f.write("=== 통계 ===\n")
             f.write(f"총 입차 시도: {stats['total_entries']}회\n")
@@ -339,15 +355,21 @@ class ParkingSimulation:
         print(f"총 진행 시간: {sim_time_str}")
         
         print("\n==== 주차장 세팅 ====")
-        print(f"전체 주차면: {stats['total_parking_spots']}면 (일반 주차면)")
-        print(f"전체 충전소: {stats['total_charger_spots']}개")
+        print(f"전체 일반 주차면: {stats['total_parking_spots']}면 (일반 주차면) + {stats['total_charger_spots']}개 (충전소)")
         
         print("\n=== 주차장 상태 (현재) ===")
-        print(f"({sim_time_str}) 동안 진행 후 현재 상황")
-        print(f"총 주차된 차량: {stats['total_parked']}대")
-        print(f"이중주차 차량: {stats['double_parked']}대")
-        print(f"사용 가능한 주차면: {stats['available_spots']}면")
-        print(f"사용 가능한 충전소: {stats['available_ev_spots']}개")
+        total_spots = stats['total_parking_spots'] + stats['total_charger_spots']
+        total_parked = stats['total_parked']
+        occupied_normal = sum(1 for v in self.parking_manager.parked_vehicles.values() if v not in self.parking_manager.ev_chargers)
+        occupied_charger = sum(1 for v in self.parking_manager.parked_vehicles.values() if v in self.parking_manager.ev_chargers)
+        available_normal = stats['total_parking_spots'] - occupied_normal
+        available_charger = stats['total_charger_spots'] - occupied_charger
+
+        print(f"현재 주차된 전체 차량: {total_parked} / 전체 주차면 {total_spots}대")
+        print(f"점유된 일반 주차면: {occupied_normal}대")
+        print(f"점유된 충전소: {occupied_charger}대")
+        print(f"사용 가능한 일반 주차면: {available_normal}면")
+        print(f"사용 가능한 충전소: {available_charger}개")
         
         print("\n=== 통계 ===")
         print(f"총 입차 시도: {stats['total_entries']}회")

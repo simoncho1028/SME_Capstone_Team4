@@ -20,6 +20,7 @@ from typing import List, Dict
 import simpy
 import json
 from collections import defaultdict
+from src.utils.helpers import sample_battery_level
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -67,10 +68,10 @@ def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]
     
     # 모든 차량 생성
     for vehicle_id, info in vehicle_data.items():
-        # 배터리 레벨 랜덤 생성 (전기차만)
+        # 배터리 레벨 샘플링 (전기차만)
         battery_level = None
         if info["type"].lower() == "ev":
-            battery_level = random.uniform(0, 100.0)
+            battery_level = sample_battery_level()
         
         vehicle = Vehicle(
             vehicle_id=info["id"],
@@ -93,6 +94,11 @@ def parse_args():
     parser.add_argument("--layout", type=str, default='config/layout.json', help='레이아웃 파일 경로')
     parser.add_argument("--log", type=str, help='시뮬레이션 로그 파일 경로')
     parser.add_argument("--time", type=int, default=86400, help="시뮬레이션 시간 (초, 기본값: 24시간)")
+    parser.add_argument("--normal", type=int, default=830, help="일반 차량 수 (기본값: 830)")
+    parser.add_argument("--ev", type=int, default=36, help="전기차 수 (기본값: 36)")
+    parser.add_argument("--parking-capacity", type=int, default=866, help="전체 주차면 수 (기본값: 866)")
+    parser.add_argument("--seed", type=int, default=42, help="랜덤 시드 (기본값: 42)")
+    parser.add_argument('--charger', type=int, default=36, help='충전소 개수 (기본값: 36)')
     return parser.parse_args()
 
 
@@ -256,7 +262,7 @@ def main():
     args = parse_args()
     
     # 시드 설정
-    random.seed(SEED)
+    random.seed(args.seed)
     
     # 결과 저장 디렉토리 설정
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -274,7 +280,7 @@ def main():
     parking_manager = ParkingManager()
     
     # 충전소 할당
-    parking_manager.allocate_chargers(36)
+    parking_manager.allocate_chargers(args.charger)
     
     # 충전소 위치를 JSON으로 저장
     charger_positions = defaultdict(list)
@@ -309,21 +315,23 @@ def main():
     
     # 시뮬레이션 설정 출력
     print("\n=== 시뮬레이션 설정 ===")
-    print(f"  - 일반 차량: {830}대")
-    print(f"  - 전기차: {36}대")
-    print(f"  - 충전소: {36}개")
-    print(f"  - 총 주차면: {686}면")
+    print(f"  - 일반 차량: {args.normal}대")
+    print(f"  - 전기차: {args.ev}대")
+    print(f"  - 충전소: {args.charger}개")
+    print(f"  - 총 주차면: {args.parking_capacity}면")
     
     # SimPy 환경 초기화
     env = simpy.Environment()
     
     # 시뮬레이션 객체 생성
-    total_vehicles = 830 + 36
+    total_vehicles = args.normal + args.ev
     sim = ParkingSimulation(
         env=env,
         parking_manager=parking_manager,
         logger=logger,
-        total_vehicle_count=total_vehicles
+        total_vehicle_count=total_vehicles,
+        normal_count=args.normal,
+        ev_count=args.ev
     )
     
     # 차량 데이터 로드 및 차량 생성
@@ -346,8 +354,8 @@ def main():
     
     # 최적화/운영 지표 출력
     print("\n--- 최적화/운영 지표 ---")
-    total_cost = sim.logger.calculate_charger_cost(36)
-    idle_rate = sim.logger.calculate_charger_idle_rate(args.time, 36)
+    total_cost = sim.logger.calculate_charger_cost(args.charger)
+    idle_rate = sim.logger.calculate_charger_idle_rate(args.time, args.charger)
     charge_fail_rate = sim.logger.calculate_charge_fail_rate()
     parking_fail_rate = sim.logger.calculate_parking_fail_rate()
     
