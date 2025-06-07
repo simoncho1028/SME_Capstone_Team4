@@ -11,7 +11,7 @@
 import random
 import sys
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
@@ -276,6 +276,16 @@ def main():
     # 충전소 할당
     parking_manager.allocate_chargers(36)
     
+    # 충전소 위치를 JSON으로 저장
+    charger_positions = defaultdict(list)
+    for floor, row, col in parking_manager.ev_chargers:
+        charger_positions[floor].append([row, col])
+    
+    charger_positions_file = os.path.join(results_dir, "charger_positions.json")
+    with open(charger_positions_file, "w", encoding="utf-8") as f:
+        json.dump(dict(charger_positions), f, indent=2, ensure_ascii=False)
+    print(f"[INFO] 충전소 위치가 {charger_positions_file}에 저장되었습니다.")
+    
     # 레이아웃 시각화 요청이 있는 경우
     if args.visualize_layout:
         visualizer = ParkingLayoutVisualizer(output_dir=results_dir)
@@ -284,6 +294,12 @@ def main():
         charger_positions = defaultdict(list)
         for floor, row, col in parking_manager.ev_chargers:
             charger_positions[floor].append((row, col))
+        
+        # 충전소 위치를 JSON 파일로 저장
+        charger_positions_file = os.path.join(results_dir, "charger_positions.json")
+        with open(charger_positions_file, 'w', encoding='utf-8') as f:
+            json.dump(dict(charger_positions), f, indent=2, ensure_ascii=False)
+        print(f"\n[INFO] 충전소 위치 정보가 {charger_positions_file}에 저장되었습니다.")
         
         # 충전소 위치 설정 및 시각화
         visualizer.set_charger_positions(charger_positions)
