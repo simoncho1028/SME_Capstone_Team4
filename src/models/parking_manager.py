@@ -89,25 +89,18 @@ class ParkingManager:
         """사용 가능한 충전소 수 반환"""
         return len([spot for spot in self.available_chargers if self.is_spot_available(spot)])
     
-    def park_vehicle(self, vehicle: Vehicle) -> bool:
+    def park_vehicle(self, vehicle: Vehicle) -> tuple:
         """
         차량을 주차합니다.
-        
-        Args:
-            vehicle: 주차할 차량
-            
         Returns:
-            bool: 주차 성공 여부
+            (주차 성공 여부, charge_fail 여부)
         """
-        # 이미 주차된 차량인 경우
         if vehicle.vehicle_id in self.parked_vehicles:
-            return False
-        
-        # 전기차의 경우 충전소에 우선 배정
+            return (False, False)
+
+        # EV 차량이면서 충전이 필요한 경우
         if vehicle.vehicle_type == "ev" and vehicle.needs_charging():
-            # 사용 가능한 충전소 찾기
             available_chargers = [spot for spot in self.available_chargers if self.is_spot_available(spot)]
-            
             if available_chargers:
                 spot = random.choice(available_chargers)
                 self.parked_vehicles[vehicle.vehicle_id] = spot
@@ -115,38 +108,41 @@ class ParkingManager:
                 vehicle.update_state("parked")
                 if self.env:
                     vehicle.start_charging(self.env.now)
-                return True
+                return (True, False)
             else:
-                # 충전소가 모두 점유 중이면 charge_fail 이벤트 기록
-                if self.logger:
-                    self.logger.log_event(
-                        time=self.env.now if self.env else 0,
-                        vehicle_id=vehicle.vehicle_id,
-                        event="charge_fail",
-                        floor=None,
-                        pos=None,
-                        battery=vehicle.battery_level
-                    )
-                return False
-        
-        # 일반 주차면에 최단 거리 기반으로 배정
+                # 충전소 만차: charge_fail (log 기록 X, 통계만)
+                spot_assignment = self.parking_system.assign_parking_spot({
+                    "id": vehicle.vehicle_id,
+                    "building": vehicle.building_id
+                })
+                if spot_assignment:
+                    spot = spot_assignment["assigned_spot"]
+                    spot_tuple = (spot["floor"], spot["x"], spot["y"])
+                    if self.is_spot_available(spot_tuple):
+                        self.parked_vehicles[vehicle.vehicle_id] = spot_tuple
+                        self.parking_spots[spot_tuple] = vehicle.vehicle_id
+                        vehicle.update_state("parked")
+                        return (True, True)  # charge_fail: True
+                self.double_parked.add(vehicle.vehicle_id)
+                vehicle.update_state("double_parked")
+                return (False, True)  # park_fail + charge_fail
+
+        # EV(충전 필요 없음) 또는 일반 차량
         spot_assignment = self.parking_system.assign_parking_spot({
             "id": vehicle.vehicle_id,
             "building": vehicle.building_id
         })
-        
         if spot_assignment:
             spot = spot_assignment["assigned_spot"]
             spot_tuple = (spot["floor"], spot["x"], spot["y"])
-            
-            # 해당 spot이 이미 사용 중인지 확인
             if self.is_spot_available(spot_tuple):
                 self.parked_vehicles[vehicle.vehicle_id] = spot_tuple
                 self.parking_spots[spot_tuple] = vehicle.vehicle_id
                 vehicle.update_state("parked")
-                return True
-        
-        return False
+                return (True, False)
+        self.double_parked.add(vehicle.vehicle_id)
+        vehicle.update_state("double_parked")
+        return (False, False)
 
     def exit_vehicle(self, vehicle: Vehicle) -> bool:
         """
@@ -288,7 +284,6 @@ class ParkingManager:
     def handle_vehicle_entry(self, vehicle: Vehicle) -> None:
         """
         차량 입차를 처리하고 로그를 기록합니다.
-        
         Args:
             vehicle: 입차할 차량
         """
@@ -299,14 +294,12 @@ class ParkingManager:
             event="arrive",
             building=vehicle.building_id
         )
-        
+
         # 주차 시도
         if self.park_vehicle(vehicle):
             # 주차 성공 시 로그 기록
             spot = self.parked_vehicles[vehicle.vehicle_id]
-            # 층 이름을 내부 형식으로 변환
             floor = self.convert_to_internal_floor_name(spot[0])
-            
             self.logger.log_event(
                 time=self.env.now,
                 vehicle_id=vehicle.vehicle_id,
@@ -314,10 +307,20 @@ class ParkingManager:
                 floor=floor,
                 pos=(spot[1], spot[2]),
                 battery=vehicle.battery_level,
-                parking_duration=vehicle.parking_duration  # 주차 예정 시간 기록
+                parking_duration=vehicle.parking_duration
             )
+            # EV이고 충전 필요+충전소에 주차된 경우만 charge_start
+            if vehicle.vehicle_type == "ev" and vehicle.needs_charging() and spot in self.ev_chargers:
+                self.logger.log_event(
+                    time=self.env.now,
+                    vehicle_id=vehicle.vehicle_id,
+                    event="charge_start",
+                    floor=floor,
+                    pos=(spot[1], spot[2]),
+                    battery=vehicle.battery_level
+                )
         else:
-            # 주차 실패 시 로그 기록
+            # park_fail(이중주차) 로그 기록
             self.logger.log_event(
                 time=self.env.now,
                 vehicle_id=vehicle.vehicle_id,

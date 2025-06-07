@@ -77,7 +77,7 @@ class ParkingMapLoader:
 
                 # 한글을 영문으로 변환
                 converted_map = self._convert_map(map_data)
-                print(f"[DEBUG] Converted map for {floor_key}: {len(converted_map)}x{len(converted_map[0])} grid")
+                #print(f"[DEBUG] Converted map for {floor_key}: {len(converted_map)}x{len(converted_map[0])} grid")
                 self.maps[floor_key] = converted_map
 
             return self.maps
@@ -102,7 +102,7 @@ class ParkingMapLoader:
             for j, cell in enumerate(row):
                 # 매핑된 값이 있으면 사용, 없으면 원래 값 유지
                 converted_cell = self.KOREAN_TO_ENGLISH.get(cell, cell)
-                print(f"[DEBUG] Converting cell at ({i}, {j}): {cell} -> {converted_cell}")  # 디버그 출력 추가
+                #print(f"[DEBUG] Converting cell at ({i}, {j}): {cell} -> {converted_cell}")  # 디버그 출력 추가
                 converted_row.append(converted_cell)
             converted.append(converted_row)
         return converted

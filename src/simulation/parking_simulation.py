@@ -94,8 +94,14 @@ class ParkingSimulation:
         # 차량을 active_vehicles에 추가
         self.active_vehicles[vehicle.vehicle_id] = vehicle
         
-        # 즉시 주차 시도
-        if self.parking_manager.park_vehicle(vehicle):
+        # park_vehicle의 반환값: (주차성공, charge_fail)
+        park_success, charge_fail = self.parking_manager.park_vehicle(vehicle)
+        if charge_fail:
+            # log 기록 없이 통계에만 반영
+            if "charge_fail" not in self.stats:
+                self.stats["charge_fail"] = 0
+            self.stats["charge_fail"] += 1
+        if park_success:
             self.stats["successful_parks"] += 1
             self.log_event(vehicle, "park_success")
             
@@ -276,16 +282,17 @@ class ParkingSimulation:
         charge_fail_count = len(df[df.event == "charge_fail"]) if not df.empty else 0
         
         with open(filename, "w", encoding="utf-8") as f:
-            f.write("==== 시뮬레이션 결과 ====\n")
-            f.write(f"총 진행 시간: {sim_time_str}\n\n")
+            f.write("==== 시뮬레이션 결과 요약 ====\n")
+            f.write(f"\n[총 진행 시간]\n")
+            f.write(f"- {sim_time_str}\n")
             
-            f.write("==== 주차장 세팅 ====\n")
-            f.write(f"전체 주차면: {stats['total_parking_spots']}면 (일반 주차면) + {stats['total_charger_spots']}개 (충전소)\n")
-            f.write(f"전체 충전소: {stats['total_charger_spots']}개\n")
-            f.write(f"일반 차량: {self.normal_count if self.normal_count is not None else 'N/A'}대\n")
-            f.write(f"EV: {self.ev_count if self.ev_count is not None else 'N/A'}대\n\n")
+            f.write(f"\n[주차장 세팅]\n")
+            f.write(f"- 전체 주차면: {stats['total_parking_spots'] + stats['total_charger_spots']}면 (일반 {stats['total_parking_spots']} + 충전소 {stats['total_charger_spots']})\n")
+            f.write(f"- 충전소 수: {stats['total_charger_spots']}개\n")
+            f.write(f"- 일반 차량: {self.normal_count if self.normal_count is not None else 'N/A'}대\n")
+            f.write(f"- 전기차(EV): {self.ev_count if self.ev_count is not None else 'N/A'}대\n")
             
-            # === 주차장 상태 (현재) ===
+            f.write(f"\n[현재 주차장 상태]\n")
             total_spots = stats['total_parking_spots'] + stats['total_charger_spots']
             total_parked = stats['total_parked']
             occupied_normal = sum(1 for v in self.parking_manager.parked_vehicles.values() if v not in self.parking_manager.ev_chargers)
@@ -293,35 +300,38 @@ class ParkingSimulation:
             available_normal = stats['total_parking_spots'] - occupied_normal
             available_charger = stats['total_charger_spots'] - occupied_charger
 
-            f.write("=== 주차장 상태 (현재) ===\n")
-            f.write(f"현재 주차된 전체 차량: {total_parked} / 전체 주차면 {total_spots}대\n")
-            f.write(f"점유된 일반 주차면: {occupied_normal}대\n")
-            f.write(f"점유된 충전소: {occupied_charger}대\n")
-            f.write(f"사용 가능한 일반 주차면: {available_normal}면\n")
-            f.write(f"사용 가능한 충전소: {available_charger}개\n\n")
+            f.write(f"- 전체 주차 차량: {total_parked} / {total_spots}\n")
+            f.write(f"  - 일반 주차면 점유: {occupied_normal} / {stats['total_parking_spots']}\n")
+            f.write(f"  - 충전소 점유: {occupied_charger} / {stats['total_charger_spots']}\n")
+            f.write(f"- 사용 가능 일반 주차면: {available_normal}\n")
+            f.write(f"- 사용 가능 충전소: {available_charger}\n")
             
-            f.write("=== 통계 ===\n")
-            f.write(f"총 입차 시도: {stats['total_entries']}회\n")
-            f.write(f"성공한 주차: {stats['successful_parks']}회\n")
-            f.write(f"실패한 주차: {stats['failed_parks']}회\n")
-            f.write(f"총 충전 시도: {stats['total_charges']}회\n")
-            f.write(f"실패한 충전 시도: {charge_fail_count}회\n")
-            f.write(f"출차: {depart_count}회\n\n")
+            f.write(f"\n[이용 통계]\n")
+            f.write(f"- 총 입차 시도: {stats['total_entries']}회\n")
+            success_rate = (stats['successful_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
+            fail_rate = (stats['failed_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
+            f.write(f"  - 주차 성공: {stats['successful_parks']}회 (성공률: {success_rate:.1f}%)\n")
+            f.write(f"  - 주차 실패: {stats['failed_parks']}회 (실패율: {fail_rate:.1f}%)\n")
+            f.write(f"- 총 출차: {depart_count}회\n")
+ 
+            # --- EV 충전 통계 집계 ---
+            ev_arrive = df[(df['type'] == 'ev') & (df['event'] == 'arrive') & (df['battery'] < 80)]
+            ev_ids = set(ev_arrive['id'])
+            charge_success = 0
+            charge_fail = 0
+            for vid in ev_ids:
+                sub = df[df['id'] == vid]
+                if (sub['event'] == 'charge_start').any():
+                    charge_success += 1
+                elif (sub['event'] == 'park_success').any():
+                    charge_fail += 1
+            charge_try = len(ev_ids)
+
+            f.write(f"- EV 충전 시도: {charge_try}회\n")
+            f.write(f"  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)\n")
+            f.write(f"  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)\n")
             
-            f.write("==== 최적화/운영 지표 ====\n")
-            if stats['total_charger_spots'] > 0:
-                charger_cost = self.logger.calculate_charger_cost(stats['total_charger_spots'])
-                idle_rate = self.logger.calculate_charger_idle_rate(self.env.now, stats['total_charger_spots'])
-                charge_fail_rate = self.logger.calculate_charge_fail_rate()
-                parking_fail_rate = self.logger.calculate_parking_fail_rate()
-                
-                f.write(f"충전소 설치+유지 총비용: {charger_cost:,} 원\n")
-                f.write(f"충전소 공실률: {idle_rate * 100:.2f} %\n")
-                f.write(f"충전 실패율: {charge_fail_rate * 100:.2f} %\n")
-                f.write(f"주차 실패율: {parking_fail_rate * 100:.2f} %\n")
-            else:
-                f.write("충전소가 설치되어 있지 않습니다.\n")
-                f.write(f"주차 실패율: {self.logger.calculate_parking_fail_rate() * 100:.2f} %\n")
+    
         
         print(f"\n[INFO] 시뮬레이션 결과가 {filename}에 저장되었습니다.")
 
@@ -351,13 +361,17 @@ class ParkingSimulation:
         # 실패한 충전 시도 계산
         charge_fail_count = len(df[df.event == "charge_fail"]) if not df.empty else 0
         
-        print("\n==== 시뮬레이션 결과 ====")
-        print(f"총 진행 시간: {sim_time_str}")
+        print("\n==== 시뮬레이션 결과 요약 ====")
+        print(f"\n[총 진행 시간]")
+        print(f"- {sim_time_str}")
         
-        print("\n==== 주차장 세팅 ====")
-        print(f"전체 일반 주차면: {stats['total_parking_spots']}면 (일반 주차면) + {stats['total_charger_spots']}개 (충전소)")
+        print(f"\n[주차장 세팅]")
+        print(f"- 전체 주차면: {stats['total_parking_spots'] + stats['total_charger_spots']}면 (일반 {stats['total_parking_spots']} + 충전소 {stats['total_charger_spots']})")
+        print(f"- 충전소 수: {stats['total_charger_spots']}개")
+        print(f"- 일반 차량: {self.normal_count if self.normal_count is not None else 'N/A'}대")
+        print(f"- 전기차(EV): {self.ev_count if self.ev_count is not None else 'N/A'}대")
         
-        print("\n=== 주차장 상태 (현재) ===")
+        print(f"\n[현재 주차장 상태]")
         total_spots = stats['total_parking_spots'] + stats['total_charger_spots']
         total_parked = stats['total_parked']
         occupied_normal = sum(1 for v in self.parking_manager.parked_vehicles.values() if v not in self.parking_manager.ev_chargers)
@@ -365,36 +379,38 @@ class ParkingSimulation:
         available_normal = stats['total_parking_spots'] - occupied_normal
         available_charger = stats['total_charger_spots'] - occupied_charger
 
-        print(f"현재 주차된 전체 차량: {total_parked} / 전체 주차면 {total_spots}대")
-        print(f"점유된 일반 주차면: {occupied_normal}대")
-        print(f"점유된 충전소: {occupied_charger}대")
-        print(f"사용 가능한 일반 주차면: {available_normal}면")
-        print(f"사용 가능한 충전소: {available_charger}개")
+        print(f"- 전체 주차 차량: {total_parked} / {total_spots}")
+        print(f"  - 일반 주차면 점유: {occupied_normal} / {stats['total_parking_spots']}")
+        print(f"  - 충전소 점유: {occupied_charger} / {stats['total_charger_spots']}")
+        print(f"- 사용 가능 일반 주차면: {available_normal}")
+        print(f"- 사용 가능 충전소: {available_charger}")
         
-        print("\n=== 통계 ===")
-        print(f"총 입차 시도: {stats['total_entries']}회")
-        print(f"성공한 주차: {stats['successful_parks']}회")
-        print(f"실패한 주차: {stats['failed_parks']}회")
-        print(f"총 충전 시도: {stats['total_charges']}회")
-        print(f"실패한 충전 시도: {charge_fail_count}회")
-        print(f"출차: {depart_count}회")
+        print(f"\n[이용 통계]")
+        print(f"- 총 입차 시도: {stats['total_entries']}회")
+        success_rate = (stats['successful_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
+        fail_rate = (stats['failed_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
+        print(f"  - 주차 성공: {stats['successful_parks']}회 (성공률: {success_rate:.1f}%)")
+        print(f"  - 주차 실패: {stats['failed_parks']}회 (실패율: {fail_rate:.1f}%)")
+        print(f"- 총 출차: {depart_count}회")
+
+        # --- EV 충전 통계 집계 ---
+        ev_arrive = df[(df['type'] == 'ev') & (df['event'] == 'arrive') & (df['battery'] < 80)]
+        ev_ids = set(ev_arrive['id'])
+        charge_success = 0
+        charge_fail = 0
+        for vid in ev_ids:
+            sub = df[df['id'] == vid]
+            if (sub['event'] == 'charge_start').any():
+                charge_success += 1
+            elif (sub['event'] == 'park_success').any():
+                charge_fail += 1
+        charge_try = len(ev_ids)
+
+        print(f"- EV 충전 시도: {charge_try}회")
+        print(f"  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)")
+        print(f"  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)")
         
-        # 충전소 관련 지표
-        if stats['total_charger_spots'] > 0:
-            charger_cost = self.logger.calculate_charger_cost(stats['total_charger_spots'])
-            idle_rate = self.logger.calculate_charger_idle_rate(self.env.now, stats['total_charger_spots'])
-            charge_fail_rate = self.logger.calculate_charge_fail_rate()
-            parking_fail_rate = self.logger.calculate_parking_fail_rate()
-            
-            print("\n==== 최적화/운영 지표 ====")
-            print(f"충전소 설치+유지 총비용: {charger_cost:,} 원")
-            print(f"충전소 공실률: {idle_rate * 100:.2f} %")
-            print(f"충전 실패율: {charge_fail_rate * 100:.2f} %")
-            print(f"주차 실패율: {parking_fail_rate * 100:.2f} %")
-        else:
-            print("\n==== 최적화/운영 지표 ====")
-            print("충전소가 설치되어 있지 않습니다.")
-            print(f"주차 실패율: {self.logger.calculate_parking_fail_rate() * 100:.2f} %")
+       
         
         # output_dir이 제공된 경우에만 파일로 저장
         if output_dir:
