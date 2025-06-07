@@ -70,7 +70,7 @@ def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]
         # 배터리 레벨 랜덤 생성 (전기차만)
         battery_level = None
         if info["type"].lower() == "ev":
-            battery_level = random.uniform(20.0, 80.0)
+            battery_level = random.uniform(0, 100.0)
         
         vehicle = Vehicle(
             vehicle_id=info["id"],

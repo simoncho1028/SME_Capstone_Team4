@@ -4,20 +4,8 @@
 from typing import Optional
 from dataclasses import dataclass
 from src.utils.helpers import sample_parking_duration
-import numpy as np
 import random
-import os
-
-# GMM 컴포넌트 정의
-GMM_COMPONENTS = [
-    (0.359, 108, 42),   # (weight, mean, std)
-    (0.180, 213, 22),
-    (0.310, 403, 101),
-    (0.151, 635, 111)
-]
-
-# 충전 속도 설정 (아이오닉5 기준)
-CHARGING_RATE_PER_MINUTE = 0.162  # % per minute
+import numpy as np
 
 @dataclass
 class Vehicle:
@@ -29,13 +17,12 @@ class Vehicle:
     state: str = "outside"  # "outside", "parked", "double_parked", "charging"
     battery_level: Optional[float] = None  # 전기차의 경우 배터리 잔량 (0-100)
     parking_duration: Optional[float] = None  # 주차 예정 시간 (초)
-    assigned_charging_time: Optional[float] = None  # 할당된 충전 시간 (분)
     is_charging: bool = False  # 충전 상태
     finished_charging: bool = False  # 충전 완료 여부
     charging_start_time: Optional[float] = None  # 충전 시작 시간
-    charged_amount: float = 0.0  # 충전된 양 (%)
     env: Optional[object] = None  # SimPy 환경
-    parking_manager: Optional[object] = None  # 주차장 관리자
+    parking_manager: Optional[object] = None
+    assigned_charging_time: Optional[float] = None  # 할당된 충전 시간 (분)
 
     def __post_init__(self):
         """초기화 이후 추가 설정"""
@@ -44,8 +31,7 @@ class Vehicle:
         
         if self.vehicle_type == "ev":
             # 초기 배터리 레벨 설정 (20-80% 사이)
-            self.battery_level = random.uniform(20, 80) if self.battery_level is None else self.battery_level
-            
+            self.battery_level = random.uniform(0, 100) if self.battery_level is None else self.battery_level
             # GMM에서 충전 시간 샘플링
             self.assigned_charging_time = self._sample_charging_time_from_gmm()
         
@@ -55,19 +41,6 @@ class Vehicle:
         # 주차 시간이 설정되지 않은 경우, 도착 시각에 따른 감마 분포에서 샘플링
         if self.parking_duration is None:
             self.parking_duration = sample_parking_duration(self.arrival_time)
-
-    def _sample_charging_time_from_gmm(self) -> float:
-        """GMM에서 충전 시간을 샘플링합니다."""
-        # 컴포넌트 선택
-        weights = [comp[0] for comp in GMM_COMPONENTS]
-        selected_comp = np.random.choice(len(GMM_COMPONENTS), p=weights)
-        
-        # 선택된 컴포넌트에서 시간 샘플링
-        _, mean, std = GMM_COMPONENTS[selected_comp]
-        sampled_time = np.random.normal(mean, std)
-        
-        # 음수 방지
-        return max(0, sampled_time)
 
     def process(self):
         """
@@ -119,7 +92,6 @@ class Vehicle:
         self.state = "charging"
         self.is_charging = True
         self.charging_start_time = current_time
-        self.charged_amount = 0.0
 
     def stop_charging(self) -> None:
         """충전 종료"""
@@ -127,27 +99,19 @@ class Vehicle:
         self.is_charging = False
         self.charging_start_time = None
 
-    def update_charging(self, current_time: float) -> None:
-        """충전 상태 업데이트"""
-        if not self.is_charging or self.charging_start_time is None:
-            return
-            
-        # 충전 경과 시간 계산 (분 단위)
-        elapsed_minutes = (current_time - self.charging_start_time) / 60
-        
-        # 할당된 충전 시간이 지났는지 확인
-        if elapsed_minutes >= self.assigned_charging_time:
-            # 총 충전된 양 계산
-            total_charged = CHARGING_RATE_PER_MINUTE * self.assigned_charging_time
-            self.battery_level = min(100, self.battery_level + total_charged)
-            self.finished_charging = True
-            self.stop_charging()
-            return
-            
-        # 현재까지 충전된 양 계산
-        current_charged = CHARGING_RATE_PER_MINUTE * elapsed_minutes
-        self.battery_level = min(100, self.battery_level + current_charged - self.charged_amount)
-        self.charged_amount = current_charged
+    def _sample_charging_time_from_gmm(self) -> float:
+        """GMM에서 충전 시간을 샘플링합니다."""
+        GMM_COMPONENTS = [
+            (0.359, 108, 42),   # (weight, mean, std)
+            (0.180, 213, 22),
+            (0.310, 403, 101),
+            (0.151, 635, 111)
+        ]
+        weights = [comp[0] for comp in GMM_COMPONENTS]
+        selected_comp = np.random.choice(len(GMM_COMPONENTS), p=weights)
+        _, mean, std = GMM_COMPONENTS[selected_comp]
+        sampled_time = np.random.normal(mean, std)
+        return max(0, sampled_time)
 
     def __str__(self) -> str:
         """문자열 표현"""

@@ -4,7 +4,7 @@
 import random
 import numpy as np
 from typing import List, Tuple, Dict, Optional
-from src.config import MIN_PARKING_TIME, MAX_PARKING_TIME, MIN_CHARGING_TIME, MAX_CHARGING_TIME
+from src.config import MIN_PARKING_TIME, MAX_PARKING_TIME
 
 # 시간대별 입차 비율 (24시간)
 normalized_entry_ratios = [
@@ -61,48 +61,42 @@ def sample_battery_level() -> float:
 
 def sample_parking_duration(arrival_time: float) -> float:
     """
-    차량의 주차 시간을 정규분포에서 샘플링합니다.
-    
-    Args:
-        arrival_time: 차량 도착 시각 (초)
-        
+    차량의 주차 시간을 시간대별 감마분포(under24/over24)에서 샘플링합니다.
+    - 27% 확률로 over24, 73% 확률로 under24
+    - arrival_time(초) 기준으로 시간대(hour) 추출 (0~23)
+    - 각 분포의 shape, scale 파라미터 적용
     Returns:
         float: 주차 시간 (초)
     """
-    # 새로운 정규분포 기반 샘플링
-    # MIN_PARKING_TIME ~ MAX_PARKING_TIME 범위에서 정규분포 샘플링
-    min_hours = MIN_PARKING_TIME / 3600  # 초를 시간으로 변환
-    max_hours = MAX_PARKING_TIME / 3600  # 초를 시간으로 변환
-    
-    # 평균을 min과 max의 중점으로, 표준편차를 범위의 1/6로 설정
-    # (정규분포에서 99.7%가 평균 ± 3σ 범위에 들어오므로)
-    mean_hours = (min_hours + max_hours) / 2
-    std_hours = (max_hours - min_hours) / 6
-    
-    # 정규분포에서 샘플링
-    hours = np.random.normal(mean_hours, std_hours)
-    
-    # 초 단위로 변환하고 제한 적용
-    duration = hours * 3600
-    duration = max(MIN_PARKING_TIME, min(MAX_PARKING_TIME, duration))
-    
+    # 시간대(hour) 추출 (0~23)
+    hour = int((arrival_time % 86400) // 3600)
+
+    # 확률로 분포 선택
+    if random.random() < 0.27:
+        # over24
+        shape, scale = [
+            (2.842, 1668.003), (4.697, 870.481), (4.933, 749.986), (2.493, 1596.151),
+            (3.698, 1054.659), (5.57, 668.405), (3.824, 1041.937), (4.225, 989.981),
+            (3.69, 1122.099), (4.602, 975.278), (4.613, 973.55), (4.013, 949.655),
+            (4.692, 947.418), (5.074, 739.922), (6.094, 635.911), (4.467, 945.921),
+            (4.8, 892.503), (5.606, 834.248), (4.951, 926.108), (4.975, 902.71),
+            (4.732, 939.169), (4.605, 975.659), (4.358, 1005.49), (3.573, 1207.395)
+        ][hour]
+        minutes = np.random.gamma(shape, scale)
+        duration = max(86400, minutes * 60)  # 최소 24시간
+    else:
+        # under24
+        shape, scale = [
+            (6.974, 76.528), (4.263, 104.897), (2.904, 119.591), (1.002, 238.622),
+            (0.409, 379.759), (0.429, 240.593), (0.686, 222.459), (1.142, 240.409),
+            (0.557, 382.151), (0.681, 525.304), (0.597, 565.776), (0.369, 500.576),
+            (0.287, 608.889), (0.429, 633.819), (0.951, 483.534), (0.977, 495.728),
+            (1.633, 355.543), (2.116, 275.197), (2.233, 247.028), (3.948, 160.379),
+            (5.834, 108.328), (5.821, 101.914), (5.8, 96.547), (8.808, 62.592)
+        ][hour]
+        minutes = np.random.gamma(shape, scale)
+        duration = min(86399, max(MIN_PARKING_TIME, minutes * 60))  # 최대 24시간 미만
     return duration
-    
-    # 기존 감마 분포 기반 코드 (주석 처리)
-    # # 도착 시각을 시간대(0-23)로 변환
-    # hour = int((arrival_time % 86400) // 3600)
-    # 
-    # # 해당 시간대의 감마 분포 파라미터 가져오기
-    # shape, scale = gamma_params_by_hour[hour]
-    # 
-    # # 감마 분포에서 샘플링 (분 단위)
-    # minutes = np.random.gamma(shape, scale)
-    # 
-    # # 초 단위로 변환하고 제한 적용
-    # duration = minutes * 60
-    # duration = max(MIN_PARKING_TIME, min(MAX_PARKING_TIME, duration))
-    # 
-    # return duration
 
 def sample_charge_time() -> float:
     """

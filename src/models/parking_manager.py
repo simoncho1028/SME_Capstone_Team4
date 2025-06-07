@@ -151,7 +151,7 @@ class ParkingManager:
             vehicle.update_state("outside")
             # 전기차인 경우 배터리 랜덤 초기화
             if vehicle.vehicle_type == "ev":
-                vehicle.battery_level = random.uniform(20.0, 80.0)
+                vehicle.battery_level = random.uniform(0,100)
             return True
         
         # 일반 주차된 차량 처리

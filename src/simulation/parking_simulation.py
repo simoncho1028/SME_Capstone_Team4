@@ -103,6 +103,8 @@ class ParkingSimulation:
                 vehicle.start_charging(self.env.now)
                 self.stats["total_charges"] += 1
                 self.log_event(vehicle, "charge_start")
+                # 충전 완료 예약 프로세스 추가
+                self.env.process(self.ev_charge_complete_process(vehicle))
         else:
             self.stats["failed_parks"] += 1
             self.log_event(vehicle, "park_fail")
@@ -122,28 +124,6 @@ class ParkingSimulation:
             
             # 차량을 outside_vehicles로 돌려보내서 나중에 다시 입차 가능하게 함
             self.outside_vehicles[vehicle.vehicle_id] = vehicle
-
-    def update_charging_vehicles(self) -> None:
-        """충전 중인 차량들의 배터리 상태 업데이트"""
-        for vehicle_id, spot in self.parking_manager.parked_vehicles.items():
-            if spot in self.parking_manager.ev_chargers:
-                vehicle = self.active_vehicles.get(vehicle_id)
-                if vehicle and vehicle.state == "charging" and vehicle.battery_level < 100.0:
-                    # 현재 배터리 레벨 저장
-                    old_battery = vehicle.battery_level
-                    
-                    # 1분 단위로 배터리 업데이트
-                    vehicle.update_charging(self.env.now)
-                    
-                    # 배터리 레벨이 변경되었으면 로그에 기록
-                    if vehicle.battery_level > old_battery:
-                        self.log_event(vehicle, "charge_update")
-                    
-                    # 충전 완료 시
-                    if vehicle.battery_level >= 100.0:
-                        self.log_event(vehicle, "charge_complete")
-                        # 충전 완료 후 상태 변경
-                        vehicle.update_state("parked")
 
     def plan_daily_entries(self, current_time: float) -> None:
         """
@@ -226,6 +206,14 @@ class ParkingSimulation:
         # 출차 처리
         self.handle_vehicle_exit(vehicle)
 
+    def ev_charge_complete_process(self, vehicle: Vehicle):
+        """
+        EV 충전 완료 예약 프로세스 (충전 시작 후 assigned_charging_time 경과 시 charge_complete 로그)
+        """
+        if vehicle.assigned_charging_time is not None:
+            yield self.env.timeout(vehicle.assigned_charging_time * 60)  # 분 -> 초
+            self.log_event(vehicle, "charge_complete")
+
     def run(self, until: float) -> None:
         """
         시뮬레이션 실행
@@ -241,15 +229,6 @@ class ParkingSimulation:
         
         # 차량 입차 프로세스 시작
         self.env.process(self.vehicle_entry_process())
-        
-        def charging_update_process(env: simpy.Environment):
-            """충전 상태 업데이트 프로세스"""
-            while True:
-                self.update_charging_vehicles()
-                yield env.timeout(60)  # 1분마다 업데이트
-        
-        # 충전 상태 업데이트 프로세스 시작
-        self.env.process(charging_update_process(self.env))
         
         # 시뮬레이션 실행
         self.env.run(until=until)
