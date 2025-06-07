@@ -277,59 +277,129 @@ class ParkingManager:
     def allocate_chargers(self, num_chargers: int) -> None:
         """
         지정된 수만큼의 주차면을 충전소로 변환합니다.
-        
+        2~3개씩 그룹화, 입구로부터 맨해튼 거리 15 이상, 각 동과의 거리의 최대-최소 차이 최소 그룹 우선.
+        충전소 개수만큼 층을 랜덤하게 뽑아 분배합니다.
         Args:
             num_chargers: 할당할 충전소 수
         """
         print("\n[DEBUG] === 충전소 할당 시작 ===")
-        
+        ENTRANCE_ROW, ENTRANCE_COL = 0, 8
+        DIST_THRESHOLD = 15
+        # 각 동 좌표
+        building_coords = self.parking_system.building_coordinates
+        building_list = list(building_coords.values())
         # 기존 충전소 초기화
         self.ev_chargers.clear()
         self.available_chargers.clear()
         for floor in self.available_chargers_by_floor:
             self.available_chargers_by_floor[floor].clear()
-        
-        # 모든 사용 가능한 주차면 중에서 랜덤하게 선택
-        all_spots = []
+        # 층별로 사용 가능한 주차면 수집
+        floor_spots = {}
         for floor in self.available_spots_by_floor:
             spots = self.available_spots_by_floor[floor]
-            print(f"[DEBUG] {floor}층 사용 가능한 주차면: {len(spots)}개")
-            all_spots.extend(spots)
-        
-        print(f"[DEBUG] 전체 사용 가능한 주차면: {len(all_spots)}개")
-        
-        # 충전소로 변환할 주차면 선택
-        selected_spots = random.sample(all_spots, min(num_chargers, len(all_spots)))
+            floor_spots[floor] = spots
+        floor_names = list(floor_spots.keys())
+        # 충전소 개수만큼 층을 랜덤하게 뽑음
+        random_floors = [random.choice(floor_names) for _ in range(num_chargers)]
+        random.shuffle(random_floors)
+        selected_spots = []
+        chargers_per_floor = {f: 0 for f in floor_names}
+        for f in random_floors:
+            chargers_per_floor[f] += 1
+        # 각 층에 대해 할당
+        for floor, count in chargers_per_floor.items():
+            if count == 0:
+                continue
+            spots = floor_spots[floor]
+            # 거리 조건을 만족하는 주차면만 필터링
+            valid_spots = [s for s in spots if abs(s[1] - ENTRANCE_ROW) + abs(s[2] - ENTRANCE_COL) >= DIST_THRESHOLD]
+            # 연속된 주차면 그룹화
+            continuous_spots = []
+            current_group = []
+            for i in range(len(valid_spots)):
+                if not current_group:
+                    current_group.append(valid_spots[i])
+                else:
+                    prev_spot = current_group[-1]
+                    curr_spot = valid_spots[i]
+                    if (prev_spot[1] == curr_spot[1] and abs(prev_spot[2] - curr_spot[2]) == 1):
+                        current_group.append(curr_spot)
+                    else:
+                        if len(current_group) >= 2:
+                            continuous_spots.append(current_group)
+                        current_group = [curr_spot]
+            if len(current_group) >= 2:
+                continuous_spots.append(current_group)
+            # 각 그룹별로 2~3개씩 뽑을 수 있는 모든 조합 생성
+            group_candidates = []
+            for group in continuous_spots:
+                for size in [3, 2]:
+                    if len(group) >= size:
+                        for i in range(len(group) - size + 1):
+                            candidate = group[i:i+size]
+                            # 각 동과의 거리 계산
+                            dists = []
+                            for bx, by in building_list:
+                                group_d = [abs(s[1] - bx) + abs(s[2] - by) for s in candidate]
+                                dists.append(min(group_d))
+                            max_min = max(dists)
+                            min_min = min(dists)
+                            diff = max_min - min_min
+                            group_candidates.append((diff, candidate))
+            # 최대-최소 차이가 가장 작은 그룹부터 우선 할당
+            group_candidates.sort(key=lambda x: x[0])
+            floor_selected = []
+            used_spots = set()
+            for diff, candidate in group_candidates:
+                if len(floor_selected) + len(candidate) > count:
+                    continue
+                if any(tuple(s) in used_spots for s in candidate):
+                    continue
+                floor_selected.extend(candidate)
+                used_spots.update(candidate)
+                if len(floor_selected) >= count:
+                    break
+            # 만약 그룹에서 다 못 채우면, 남은 수만큼 랜덤하게 추가
+            if len(floor_selected) < count:
+                remain = count - len(floor_selected)
+                single_candidates = [s for s in valid_spots if s not in floor_selected]
+                if len(single_candidates) >= remain:
+                    floor_selected.extend(random.sample(single_candidates, remain))
+                else:
+                    floor_selected.extend(single_candidates)
+            selected_spots.extend(floor_selected)
+        # 만약 아직도 남았다면 전체에서 거리 조건 만족하는 곳 랜덤 할당
+        if len(selected_spots) < num_chargers:
+            all_valid_spots = []
+            for spots in floor_spots.values():
+                all_valid_spots.extend([s for s in spots if abs(s[1] - ENTRANCE_ROW) + abs(s[2] - ENTRANCE_COL) >= DIST_THRESHOLD])
+            remain = num_chargers - len(selected_spots)
+            candidates = [s for s in all_valid_spots if s not in selected_spots]
+            if len(candidates) >= remain:
+                selected_spots.extend(random.sample(candidates, remain))
+            else:
+                selected_spots.extend(candidates)
         print(f"[DEBUG] 선택된 충전소 위치: {len(selected_spots)}개")
-        
         # 선택된 주차면을 충전소로 변환
         floor_counts = defaultdict(int)
         for spot in selected_spots:
-            floor = spot[0]  # (floor, row, col)
+            floor = spot[0]
             floor_counts[floor] += 1
-            
-            # 일반 주차면 목록에서 제거
             if spot in self.available_spots:
                 self.available_spots.remove(spot)
             if spot in self.available_spots_by_floor[floor]:
                 self.available_spots_by_floor[floor].remove(spot)
             if spot in self.normal_spots:
-                self.normal_spots.remove(spot)  # 충전소로 바뀐 자리 normal_spots에서 제거
-            
-            # 충전소 목록에 추가
+                self.normal_spots.remove(spot)
             self.ev_chargers.add(spot)
             self.available_chargers.append(spot)
             self.available_chargers_by_floor[floor].append(spot)
-            
-            # 전체 주차면/충전소 수 업데이트
             self.total_parking_spots -= 1
             self.total_charger_spots += 1
-        
         print("\n[DEBUG] 층별 충전소 할당 결과:")
         for floor in sorted(floor_counts.keys()):
             print(f"[DEBUG] - {floor}: {floor_counts[floor]}개")
             print(f"[DEBUG]   위치: {self.available_chargers_by_floor[floor]}")
-        
         print(f"\n[DEBUG] === 충전소 할당 완료 ({len(selected_spots)}개) ===\n")
 
     def convert_to_internal_floor_name(self, floor: str) -> str:
