@@ -16,6 +16,7 @@ class ParkingManager:
         self.double_parked = set()  # 이중주차된 차량 ID 집합
         self.parking_spots = {}  # (floor, row, col) -> vehicle_id
         self.ev_chargers = set()  # 충전소 위치 집합
+        self.normal_spots = set()  # 일반구역 위치 집합 추가
         
         # 층별 주차면 관리
         self.available_spots_by_floor = {}  # floor -> [(floor, row, col), ...]
@@ -62,6 +63,7 @@ class ParkingManager:
                     if cell == CELL_PARK:  # 일반 주차면
                         self.available_spots.append(spot)
                         self.available_spots_by_floor[floor].append(spot)
+                        self.normal_spots.add(spot)  # 일반구역 집합에 추가
                         self.total_parking_spots += 1
                     elif cell == CELL_CHARGER:  # 충전소
                         self.available_chargers.append(spot)
@@ -98,7 +100,7 @@ class ParkingManager:
         if vehicle.vehicle_id in self.parked_vehicles:
             return (False, False)
 
-        # EV 차량이면서 충전이 필요한 경우
+        # EV 차량이면서 충전이 필요한 경우에만 충전소 시도
         if vehicle.vehicle_type == "ev" and vehicle.needs_charging():
             available_chargers = [spot for spot in self.available_chargers if self.is_spot_available(spot)]
             if available_chargers:
@@ -110,36 +112,26 @@ class ParkingManager:
                     vehicle.start_charging(self.env.now)
                 return (True, False)
             else:
-                # 충전소 만차: charge_fail (log 기록 X, 통계만)
-                spot_assignment = self.parking_system.assign_parking_spot({
-                    "id": vehicle.vehicle_id,
-                    "building": vehicle.building_id
-                })
-                if spot_assignment:
-                    spot = spot_assignment["assigned_spot"]
-                    spot_tuple = (spot["floor"], spot["x"], spot["y"])
-                    if self.is_spot_available(spot_tuple):
-                        self.parked_vehicles[vehicle.vehicle_id] = spot_tuple
-                        self.parking_spots[spot_tuple] = vehicle.vehicle_id
-                        vehicle.update_state("parked")
-                        return (True, True)  # charge_fail: True
+                # 충전소 만차: 일반구역(충전소가 아닌 곳)만 시도
+                available_normal = [spot for spot in self.normal_spots if self.is_spot_available(spot)]
+                if available_normal:
+                    spot = random.choice(available_normal)
+                    self.parked_vehicles[vehicle.vehicle_id] = spot
+                    self.parking_spots[spot] = vehicle.vehicle_id
+                    vehicle.update_state("parked")
+                    return (True, True)  # charge_fail: True
                 self.double_parked.add(vehicle.vehicle_id)
                 vehicle.update_state("double_parked")
                 return (False, True)  # park_fail + charge_fail
 
-        # EV(충전 필요 없음) 또는 일반 차량
-        spot_assignment = self.parking_system.assign_parking_spot({
-            "id": vehicle.vehicle_id,
-            "building": vehicle.building_id
-        })
-        if spot_assignment:
-            spot = spot_assignment["assigned_spot"]
-            spot_tuple = (spot["floor"], spot["x"], spot["y"])
-            if self.is_spot_available(spot_tuple):
-                self.parked_vehicles[vehicle.vehicle_id] = spot_tuple
-                self.parking_spots[spot_tuple] = vehicle.vehicle_id
-                vehicle.update_state("parked")
-                return (True, False)
+        # 일반 차량 또는 충전이 필요하지 않은 EV: 반드시 일반구역만 시도
+        available_normal = [spot for spot in self.normal_spots if self.is_spot_available(spot)]
+        if available_normal:
+            spot = random.choice(available_normal)
+            self.parked_vehicles[vehicle.vehicle_id] = spot
+            self.parking_spots[spot] = vehicle.vehicle_id
+            vehicle.update_state("parked")
+            return (True, False)
         self.double_parked.add(vehicle.vehicle_id)
         vehicle.update_state("double_parked")
         return (False, False)
@@ -260,6 +252,8 @@ class ParkingManager:
                 self.available_spots.remove(spot)
             if spot in self.available_spots_by_floor[floor]:
                 self.available_spots_by_floor[floor].remove(spot)
+            if spot in self.normal_spots:
+                self.normal_spots.remove(spot)  # 충전소로 바뀐 자리 normal_spots에서 제거
             
             # 충전소 목록에 추가
             self.ev_chargers.add(spot)
