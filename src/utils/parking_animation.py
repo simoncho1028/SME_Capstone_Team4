@@ -32,8 +32,8 @@ class ParkingAnimator:
         'X': '#FFA500',    # 출구: 주황색
         'B1': '#ADD8E6',   # 아파트: 연한 파란색
         'O': '#FF6B6B',    # 주차장 점유중: 빨간색
-        'C': '#2E8B57',    # EV 충전소: 진한 초록색 (Sea Green)
-        'CO': '#FF4500',   # EV 충전소 점유중: 진한 주황색
+        'C': '#808000',    # EV 충전소: 
+        'CO': '#FF0000',   # EV 충전소 점유중: 
         '1동': '#ADD8E6',  # 1동: 연한 파란색
         '2동': '#ADD8E6',  # 2동: 연한 파란색
         '3동': '#ADD8E6',  # 3동: 연한 파란색
@@ -201,12 +201,16 @@ class ParkingAnimator:
             is_charger = (sim_floor in self.charger_positions and position in self.charger_positions[sim_floor])
             
             # 상태에 따른 색상 결정
-            if status == 'empty':
-                color = self.COLORS['C'] if is_charger else self.COLORS['P']
-            elif status == 'charging':
-                color = self.COLORS['CO']  # 충전 중인 경우
-            elif status == 'occupied':
-                color = self.COLORS['CO'] if is_charger else self.COLORS['O']
+            if is_charger:  # 충전소인 경우
+                if status == 'charging':
+                    color = self.COLORS['CO']  # 충전 중 (빨간색)
+                else:
+                    color = self.COLORS['C']   # 비어있는 충전소 (올리브 그린)
+            else:  # 일반 주차면인 경우
+                if status == 'empty':
+                    color = self.COLORS['P']   # 비어있는 주차면
+                else:
+                    color = self.COLORS['O']   # 주차된 상태
             
             self.rectangles[internal_floor][position].set_facecolor(color)
             self.parking_state[(internal_floor, position)] = status
@@ -217,17 +221,18 @@ class ParkingAnimator:
         df = pd.read_csv(log_file)
         
         # 관련 이벤트만 필터링
-        events_df = df[df['event'].isin(['park_success', 'depart', 'charge_start'])].copy()
+        events_df = df[df['event'].isin(['park_success', 'depart', 'charge_start', 'charge_complete'])].copy()
         events_df = events_df.sort_values('time')  # 시간순 정렬
-        
-        # 주차 상태 초기화
-        current_state = {}  # (floor, pos) -> status
         
         if save_path:  # MP4로 저장
             # 시간 간격으로 이벤트 그룹화
             time_interval = 300  # 5분 간격
             max_time = events_df['time'].max()
             frames = []
+            
+            # 누적 상태를 저장할 딕셔너리
+            accumulated_state = {}  # (floor, pos) -> status
+            charging_spots = set()  # 현재 충전 중인 위치를 저장하는 집합
             
             # 시간 간격별로 이벤트 처리
             for start_time in range(0, int(max_time) + time_interval, time_interval):
@@ -237,71 +242,83 @@ class ParkingAnimator:
                     (events_df['time'] < end_time)
                 ]
                 
-                if len(interval_events) > 0:
-                    frame_events = []
+                frame_events = []
+                
+                # 현재 간격의 모든 이벤트 처리
+                for _, row in interval_events.iterrows():
+                    if pd.isna(row['pos_r']) or pd.isna(row['pos_c']) or pd.isna(row['floor']):
+                        continue
                     
-                    # 현재 간격의 모든 이벤트 처리
-                    for _, row in interval_events.iterrows():
-                        if pd.isna(row['pos_r']) or pd.isna(row['pos_c']) or pd.isna(row['floor']):
-                            continue
-                        
-                        floor = row['floor']
-                        pos = (int(row['pos_r']), int(row['pos_c']))
-                        event = row['event']
-                        
-                        # 이벤트에 따른 상태 결정
-                        if event == 'park_success':
-                            # 충전소인지 확인
-                            is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
-                            status = 'occupied'
-                            current_state[(floor, pos)] = status
-                        elif event == 'charge_start':
-                            status = 'charging'
-                            current_state[(floor, pos)] = status
-                        else:  # depart
-                            status = 'empty'
-                            if (floor, pos) in current_state:
-                                del current_state[(floor, pos)]
-                        
-                        frame_events.append({
-                            'floor': floor,
-                            'pos': pos,
-                            'status': status,
-                            'time': end_time
-                        })
+                    floor = row['floor']
+                    pos = (int(row['pos_r']), int(row['pos_c']))
+                    event = row['event']
                     
-                    # 현재 상태에 있는 모든 점유 공간 추가
-                    for (floor, pos), status in current_state.items():
-                        frame_events.append({
-                            'floor': floor,
-                            'pos': pos,
-                            'status': status,
-                            'time': end_time
-                        })
-                    
-                    if frame_events:
-                        frames.append(frame_events)
-
+                    # 이벤트에 따른 상태 업데이트
+                    if event == 'park_success':
+                        # 충전소인지 확인
+                        is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
+                        if is_charger:
+                            # 충전소에 주차 성공 시 charging 상태로 설정
+                            accumulated_state[(floor, pos)] = 'charging'
+                            charging_spots.add((floor, pos))
+                        else:
+                            # 일반 주차면은 occupied 상태로 설정
+                            accumulated_state[(floor, pos)] = 'occupied'
+                    elif event == 'depart':
+                        # 충전소인지 확인
+                        is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
+                        # depart 시 empty 상태로 설정 (삭제하지 않고 상태 변경)
+                        accumulated_state[(floor, pos)] = 'empty'
+                        if (floor, pos) in charging_spots:
+                            charging_spots.remove((floor, pos))
+                    elif event == 'charge_start':
+                        charging_spots.add((floor, pos))
+                        accumulated_state[(floor, pos)] = 'charging'
+                    elif event == 'charge_complete':
+                        if (floor, pos) in charging_spots:
+                            charging_spots.remove((floor, pos))
+                            # 충전소에서는 charge_complete 후에도 여전히 주차 중
+                            accumulated_state[(floor, pos)] = 'charging'
+                
+                # 현재까지의 누적 상태를 프레임에 추가
+                frame_events = [(floor, pos, status) for (floor, pos), status in accumulated_state.items()]
+                if frame_events:  # 이벤트가 있는 경우에만 프레임 추가
+                    frames.append(frame_events)
+            
             def update(frame_events):
-                # 모든 주차면을 빈 상태로 초기화
+                """프레임별 상태 업데이트"""
+                # 모든 주차면을 초기 상태로 리셋
                 for floor in self.rectangles:
                     for pos in self.rectangles[floor]:
-                        is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
+                        # 충전소인지 확인
+                        sim_floor = self.reverse_floor_mapping.get(floor, floor)
+                        is_charger = (sim_floor in self.charger_positions and pos in self.charger_positions[sim_floor])
+                        # 초기 색상 설정
                         color = self.COLORS['C'] if is_charger else self.COLORS['P']
                         self.rectangles[floor][pos].set_facecolor(color)
                 
-                # 현재 프레임의 이벤트 적용
-                for event in frame_events:
-                    self.update_spot(event['floor'], event['pos'], event['status'])
+                # 현재 프레임의 이벤트 처리
+                for floor, pos, status in frame_events:
+                    internal_floor = self.floor_mapping.get(floor, floor)
+                    if pos in self.rectangles[internal_floor]:
+                        # 충전소인지 확인
+                        is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
+                        
+                        # 상태에 따른 색상 결정
+                        if is_charger:  # 충전소인 경우
+                            if status == 'charging':
+                                color = self.COLORS['CO']  # 충전 중 (빨간색)
+                            else:
+                                color = self.COLORS['C']   # 비어있는 충전소 (올리브 그린)
+                        else:  # 일반 주차면인 경우
+                            if status == 'empty':
+                                color = self.COLORS['P']   # 비어있는 주차면
+                            else:
+                                color = self.COLORS['O']   # 주차된 상태
+                        
+                        self.rectangles[internal_floor][pos].set_facecolor(color)
                 
-                self.fig.suptitle(f'주차장 시뮬레이션 - {frame_events[0]["time"]/3600:.1f}시간', fontsize=16, y=0.95)
-                
-                # 모든 axes의 모든 패치 반환
-                artists = []
-                for axes_row in self.axes:
-                    for ax in axes_row:
-                        artists.extend(ax.get_children())
-                return artists
+                return []  # 애니메이션 요구사항
 
             # 애니메이션 생성 및 저장
             print(f"\n애니메이션 생성 중... (총 {len(frames)}개 프레임)")
@@ -350,15 +367,21 @@ class ParkingAnimator:
                 
                 # 이벤트에 따른 상태 결정
                 if event == 'park_success':
-                    status = 'occupied'
-                    current_state[(floor, pos)] = status
+                    # 충전소인지 확인
+                    is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
+                    if is_charger:
+                        status = 'charging'
+                    else:
+                        status = 'occupied'
+                    self.parking_state[(floor, pos)] = status
                 elif event == 'charge_start':
                     status = 'charging'
-                    current_state[(floor, pos)] = status
-                else:  # depart
+                    self.parking_state[(floor, pos)] = status
+                elif event == 'depart':
+                    # 충전소인지 확인
+                    is_charger = (floor in self.charger_positions and pos in self.charger_positions[floor])
                     status = 'empty'
-                    if (floor, pos) in current_state:
-                        del current_state[(floor, pos)]
+                    self.parking_state[(floor, pos)] = status
                 
                 self.fig.suptitle(f'주차장 시뮬레이션 - {row["time"]/3600:.1f}시간', fontsize=16, y=0.95)
                 self.update_spot(floor, pos, status)

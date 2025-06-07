@@ -1,0 +1,5 @@
+python main.py --animation --save-video --time 40000
+
+
+
+python main.py --animation --save-video

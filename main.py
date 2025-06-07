@@ -92,6 +92,7 @@ def parse_args():
     parser.add_argument("--animation-speed", type=float, default=0.1, help="애니메이션 속도 (초)")
     parser.add_argument("--layout", type=str, default='config/layout.json', help='레이아웃 파일 경로')
     parser.add_argument("--log", type=str, help='시뮬레이션 로그 파일 경로')
+    parser.add_argument("--time", type=int, default=86400, help="시뮬레이션 시간 (초, 기본값: 24시간)")
     return parser.parse_args()
 
 
@@ -318,7 +319,7 @@ def main():
         sim.outside_vehicles[vehicle.vehicle_id] = vehicle
     
     # 시뮬레이션 실행
-    sim.run(until=SIM_TIME)
+    sim.run(until=args.time)
     
     # 결과 요약 출력
     print("\n=== 시뮬레이션 결과 ===")
@@ -330,7 +331,7 @@ def main():
     # 최적화/운영 지표 출력
     print("\n--- 최적화/운영 지표 ---")
     total_cost = sim.logger.calculate_charger_cost(36)
-    idle_rate = sim.logger.calculate_charger_idle_rate(SIM_TIME, 36)
+    idle_rate = sim.logger.calculate_charger_idle_rate(args.time, 36)
     charge_fail_rate = sim.logger.calculate_charge_fail_rate()
     parking_fail_rate = sim.logger.calculate_parking_fail_rate()
     

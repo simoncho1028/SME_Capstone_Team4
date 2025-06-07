@@ -39,6 +39,15 @@ class ParkingManager:
         
         # 주차장 맵 초기화
         self._initialize_parking_map()
+        
+        # 층 이름 매핑 추가
+        self.floor_mapping = {
+            'GF': 'Ground',
+            'B1F': 'B1',
+            'B2F': 'B2',
+            'B3F': 'B3'
+        }
+        self.reverse_floor_mapping = {v: k for k, v in self.floor_mapping.items()}
     
     def _initialize_parking_map(self):
         """주차장 맵 초기화"""
@@ -153,6 +162,10 @@ class ParkingManager:
             if spot in self.parking_spots:
                 del self.parking_spots[spot]
             
+            # ParkingSystem에서 주차면 해제
+            floor, row, col = spot
+            self.parking_system.release_parking_spot(floor, row, col)
+            
             vehicle.update_state("outside")
             # 전기차인 경우 배터리 랜덤 초기화
             if vehicle.vehicle_type == "ev":
@@ -174,11 +187,12 @@ class ParkingManager:
         # 출차 처리
         if self.exit_vehicle(vehicle):
             # 메인 시뮬레이션 로그에 depart 이벤트 기록
+            floor = self.convert_to_internal_floor_name(spot[0]) if spot else ""
             self.logger.log_event(
                 time=self.env.now,
                 vehicle_id=vehicle.vehicle_id,
                 event="depart",
-                floor=spot[0] if spot else "",
+                floor=floor,
                 pos=(spot[1], spot[2]) if spot else None,
                 battery=vehicle.battery_level
             )
@@ -254,6 +268,10 @@ class ParkingManager:
         
         print(f"\n[DEBUG] === 충전소 할당 완료 ({len(selected_spots)}개) ===\n")
 
+    def convert_to_internal_floor_name(self, floor: str) -> str:
+        """층 이름을 내부 형식(B1, B2, Ground 등)으로 변환"""
+        return self.floor_mapping.get(floor, floor)
+
     def handle_vehicle_entry(self, vehicle: Vehicle) -> None:
         """
         차량 입차를 처리하고 로그를 기록합니다.
@@ -273,12 +291,14 @@ class ParkingManager:
         if self.park_vehicle(vehicle):
             # 주차 성공 시 로그 기록
             spot = self.parked_vehicles[vehicle.vehicle_id]
+            # 층 이름을 내부 형식으로 변환
+            floor = self.convert_to_internal_floor_name(spot[0])
             
             self.logger.log_event(
                 time=self.env.now,
                 vehicle_id=vehicle.vehicle_id,
                 event="park_success",
-                floor=spot[0],
+                floor=floor,
                 pos=(spot[1], spot[2]),
                 battery=vehicle.battery_level,
                 parking_duration=vehicle.parking_duration  # 주차 예정 시간 기록

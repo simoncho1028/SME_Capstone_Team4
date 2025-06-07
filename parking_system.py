@@ -19,6 +19,18 @@ class ParkingSystem:
         self.occupied_spots = {}  # 층별 점유된 주차면 관리
         self.load_layouts()
         self.initialize_occupied_spots()
+        
+        # 층 이름 매핑 추가
+        self.floor_mapping = {
+            'GF': 'Ground',
+            'B1F': 'B1',
+            'B2F': 'B2',
+            'B3F': 'B3'
+        }
+
+    def convert_floor_name(self, floor: str) -> str:
+        """층 이름을 내부 형식으로 변환합니다."""
+        return self.floor_mapping.get(floor, floor)
 
     def load_layouts(self):
         """주차장 레이아웃 파일들을 로드합니다."""
@@ -45,6 +57,7 @@ class ParkingSystem:
 
     def is_valid_parking_spot(self, floor: str, x: int, y: int) -> bool:
         """해당 위치가 유효한 주차면인지 확인합니다."""
+        floor = self.convert_floor_name(floor)
         if (x, y) in self.occupied_spots[floor]:
             return False
         return self.parking_layout[floor][x][y] == "주차면"
@@ -84,6 +97,12 @@ class ParkingSystem:
         self.occupied_spots[selected_spot["floor"]].add((selected_spot["x"], selected_spot["y"]))
         
         return selected_spot
+
+    def release_parking_spot(self, floor: str, x: int, y: int) -> None:
+        """주차면을 해제합니다."""
+        floor = self.convert_floor_name(floor)
+        if (x, y) in self.occupied_spots[floor]:
+            self.occupied_spots[floor].remove((x, y))
 
     def assign_parking_spot(self, vehicle: Dict) -> Optional[Dict]:
         """차량에 주차면을 할당합니다."""
