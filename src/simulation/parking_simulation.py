@@ -160,13 +160,13 @@ class ParkingSimulation:
         ev_candidates = [v for v in ev_vehicles if v.vehicle_id not in self.active_vehicles]
         normal_candidates = [v for v in normal_vehicles if v.vehicle_id not in self.active_vehicles]
 
-        # 매일 100% 입차 (EV/normal 각각)
-        ev_entries = len(ev_candidates)
-        normal_entries = len(normal_candidates)
+        # 매일 120% 입차 (EV/normal 각각)
+        ev_entries = int(len(ev_candidates) * 1.5)
+        normal_entries = int(len(normal_candidates) * 1.5)
 
-        # 랜덤 샘플링
-        ev_today = random.sample(ev_candidates, min(ev_entries, len(ev_candidates)))
-        normal_today = random.sample(normal_candidates, min(normal_entries, len(normal_candidates)))
+        # 랜덤 샘플링 (중복 허용)
+        ev_today = random.choices(ev_candidates, k=ev_entries)
+        normal_today = random.choices(normal_candidates, k=normal_entries)
         today_vehicles = ev_today + normal_today
         random.shuffle(today_vehicles)
 
