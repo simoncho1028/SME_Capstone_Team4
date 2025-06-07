@@ -4,7 +4,6 @@
 import random
 import numpy as np
 from typing import List, Tuple, Dict, Optional
-from src.config import MIN_PARKING_TIME, MAX_PARKING_TIME
 
 # 시간대별 입차 비율 (24시간)
 normalized_entry_ratios = [
@@ -42,8 +41,6 @@ gamma_params_by_hour = [
     (1.165172, 2681.346973)
 ]
 
-NORMAL_PARKING_MEAN = 4.0       # 일반 차량 평균 주차 시간 (시간)
-NORMAL_PARKING_STD = 2.0        # 일반 차량 주차 시간 표준편차 (시간)
 EV_CHARGING_MEAN = 2.0          # EV 평균 충전 시간 (시간)
 EV_CHARGING_STD = 1.0           # EV 충전 시간 표준편차 (시간)
 
@@ -83,7 +80,7 @@ def sample_parking_duration(arrival_time: float) -> float:
             (4.732, 939.169), (4.605, 975.659), (4.358, 1005.49), (3.573, 1207.395)
         ][hour]
         minutes = np.random.gamma(shape, scale)
-        duration = max(86400, minutes * 60)  # 최소 24시간
+        duration = minutes * 60  # 시간 제한 없음
     else:
         # under24
         shape, scale = [
@@ -95,7 +92,7 @@ def sample_parking_duration(arrival_time: float) -> float:
             (5.834, 108.328), (5.821, 101.914), (5.8, 96.547), (8.808, 62.592)
         ][hour]
         minutes = np.random.gamma(shape, scale)
-        duration = min(86399, max(MIN_PARKING_TIME, minutes * 60))  # 최대 24시간 미만
+        duration = minutes * 60  # 시간 제한 없음
     return duration
 
 def sample_charge_time() -> float:

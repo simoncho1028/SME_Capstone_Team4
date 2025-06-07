@@ -104,7 +104,27 @@ class ParkingManager:
         if vehicle.vehicle_type == "ev" and vehicle.needs_charging():
             available_chargers = [spot for spot in self.available_chargers if self.is_spot_available(spot)]
             if available_chargers:
-                spot = random.choice(available_chargers)
+                # 자신의 동과 가장 가까운 충전소 찾기
+                building = vehicle.building_id
+                building_x, building_y = self.parking_system.building_coordinates[building]
+                
+                # 각 충전소까지의 거리 계산
+                charger_distances = []
+                for spot in available_chargers:
+                    floor, row, col = spot
+                    distance = self.parking_system.calculate_distance(building_x, building_y, row, col)
+                    charger_distances.append((spot, distance))
+                
+                # 거리순으로 정렬
+                charger_distances.sort(key=lambda x: x[1])
+                min_distance = charger_distances[0][1]
+                
+                # 최단 거리와 동일한 거리를 가진 충전소들 필터링
+                closest_chargers = [spot for spot, dist in charger_distances if dist == min_distance]
+                
+                # 동일 거리 충전소가 여러 개인 경우 랜덤 선택
+                spot = random.choice(closest_chargers)
+                
                 self.parked_vehicles[vehicle.vehicle_id] = spot
                 self.parking_spots[spot] = vehicle.vehicle_id
                 vehicle.update_state("parked")
@@ -115,7 +135,27 @@ class ParkingManager:
                 # 충전소 만차: 일반구역(충전소가 아닌 곳)만 시도
                 available_normal = [spot for spot in self.normal_spots if self.is_spot_available(spot)]
                 if available_normal:
-                    spot = random.choice(available_normal)
+                    # 자신의 동과 가장 가까운 일반 주차면 찾기
+                    building = vehicle.building_id
+                    building_x, building_y = self.parking_system.building_coordinates[building]
+                    
+                    # 각 주차면까지의 거리 계산
+                    spot_distances = []
+                    for spot in available_normal:
+                        floor, row, col = spot
+                        distance = self.parking_system.calculate_distance(building_x, building_y, row, col)
+                        spot_distances.append((spot, distance))
+                    
+                    # 거리순으로 정렬
+                    spot_distances.sort(key=lambda x: x[1])
+                    min_distance = spot_distances[0][1]
+                    
+                    # 최단 거리와 동일한 거리를 가진 주차면들 필터링
+                    closest_spots = [spot for spot, dist in spot_distances if dist == min_distance]
+                    
+                    # 동일 거리 주차면이 여러 개인 경우 랜덤 선택
+                    spot = random.choice(closest_spots)
+                    
                     self.parked_vehicles[vehicle.vehicle_id] = spot
                     self.parking_spots[spot] = vehicle.vehicle_id
                     vehicle.update_state("parked")
@@ -128,7 +168,27 @@ class ParkingManager:
         # 일반 차량 또는 충전이 필요하지 않은 EV: 반드시 일반구역만 시도
         available_normal = [spot for spot in self.normal_spots if self.is_spot_available(spot)]
         if available_normal:
-            spot = random.choice(available_normal)
+            # 자신의 동과 가장 가까운 일반 주차면 찾기
+            building = vehicle.building_id
+            building_x, building_y = self.parking_system.building_coordinates[building]
+            
+            # 각 주차면까지의 거리 계산
+            spot_distances = []
+            for spot in available_normal:
+                floor, row, col = spot
+                distance = self.parking_system.calculate_distance(building_x, building_y, row, col)
+                spot_distances.append((spot, distance))
+            
+            # 거리순으로 정렬
+            spot_distances.sort(key=lambda x: x[1])
+            min_distance = spot_distances[0][1]
+            
+            # 최단 거리와 동일한 거리를 가진 주차면들 필터링
+            closest_spots = [spot for spot, dist in spot_distances if dist == min_distance]
+            
+            # 동일 거리 주차면이 여러 개인 경우 랜덤 선택
+            spot = random.choice(closest_spots)
+            
             self.parked_vehicles[vehicle.vehicle_id] = spot
             self.parking_spots[spot] = vehicle.vehicle_id
             vehicle.update_state("parked")

@@ -352,26 +352,14 @@ def main():
     else:
         sim.print_summary()  # 파일 저장 없이 출력만
     
-    # 최적화/운영 지표 출력
-    print("\n--- 최적화/운영 지표 ---")
-    total_cost = sim.logger.calculate_charger_cost(args.charger)
-    idle_rate = sim.logger.calculate_charger_idle_rate(args.time, args.charger)
-    charge_fail_rate = sim.logger.calculate_charge_fail_rate()
-    parking_fail_rate = sim.logger.calculate_parking_fail_rate()
-    
-    print(f"충전소 설치+유지 총비용: {total_cost:,} 원")
-    print(f"충전소 공실률: {idle_rate * 100:.2f} %")
-    print(f"충전 실패율: {charge_fail_rate * 100:.2f} %")
-    print(f"주차 실패율: {parking_fail_rate * 100:.2f} %")
-    
     # 결과 CSV 저장
     if not args.no_save_csv:
         csv_path = os.path.join(results_dir, "simulation_log.csv")
         sim.logger.save_to_csv(csv_path)
         print(f"\n[INFO] 결과가 {csv_path}에 저장되었습니다.")
         
-        # 시뮬레이션 요약 저장
-        sim.save_summary_to_file(results_dir)
+        # 시뮬레이션 요약 저장 (중복 제거)
+        # sim.save_summary_to_file(results_dir)  # 이미 print_summary에서 저장됨
     
     # 애니메이션 실행
     if args.animation:

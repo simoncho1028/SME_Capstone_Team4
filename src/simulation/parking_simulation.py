@@ -160,9 +160,9 @@ class ParkingSimulation:
         ev_candidates = [v for v in ev_vehicles if v.vehicle_id not in self.active_vehicles]
         normal_candidates = [v for v in normal_vehicles if v.vehicle_id not in self.active_vehicles]
 
-        # 매일 80~90% 입차 (EV/normal 각각)
-        ev_entries = int(len(ev_vehicles) * np.random.uniform(0.8, 0.9))
-        normal_entries = int(len(normal_vehicles) * np.random.uniform(0.8, 0.9))
+        # 매일 100% 입차 (EV/normal 각각)
+        ev_entries = len(ev_candidates)
+        normal_entries = len(normal_candidates)
 
         # 랜덤 샘플링
         ev_today = random.sample(ev_candidates, min(ev_entries, len(ev_candidates)))
@@ -301,55 +301,106 @@ class ParkingSimulation:
         # 실패한 충전 시도 계산
         charge_fail_count = len(df[df.event == "charge_fail"]) if not df.empty else 0
         
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write("==== 시뮬레이션 결과 요약 ====\n")
-            f.write(f"\n[총 진행 시간]\n")
-            f.write(f"- {sim_time_str}\n")
-            
-            f.write(f"\n[주차장 세팅]\n")
-            f.write(f"- 전체 주차면: {stats['total_parking_spots'] + stats['total_charger_spots']}면 (일반 {stats['total_parking_spots']} + 충전소 {stats['total_charger_spots']})\n")
-            f.write(f"- 충전소 수: {stats['total_charger_spots']}개\n")
-            f.write(f"- 일반 차량: {self.normal_count if self.normal_count is not None else 'N/A'}대\n")
-            f.write(f"- 전기차(EV): {self.ev_count if self.ev_count is not None else 'N/A'}대\n")
-            
-            f.write(f"\n[현재 주차장 상태]\n")
-            total_spots = stats['total_parking_spots'] + stats['total_charger_spots']
-            total_parked = stats['total_parked']
-            occupied_normal = sum(1 for v in self.parking_manager.parked_vehicles.values() if v not in self.parking_manager.ev_chargers)
-            occupied_charger = sum(1 for v in self.parking_manager.parked_vehicles.values() if v in self.parking_manager.ev_chargers)
-            available_normal = stats['total_parking_spots'] - occupied_normal
-            available_charger = stats['total_charger_spots'] - occupied_charger
-
-            f.write(f"- 전체 주차 차량: {total_parked} / {total_spots}\n")
-            f.write(f"  - 일반 주차면 점유: {occupied_normal} / {stats['total_parking_spots']}\n")
-            f.write(f"  - 충전소 점유: {occupied_charger} / {stats['total_charger_spots']}\n")
-            f.write(f"- 사용 가능 일반 주차면: {available_normal}\n")
-            f.write(f"- 사용 가능 충전소: {available_charger}\n")
-            
-            f.write(f"\n[이용 통계]\n")
-            f.write(f"- 총 입차 시도: {stats['total_entries']}회\n")
-            success_rate = (stats['successful_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
-            fail_rate = (stats['failed_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
-            f.write(f"  - 주차 성공: {stats['successful_parks']}회 (성공률: {success_rate:.1f}%)\n")
-            f.write(f"  - 주차 실패: {stats['failed_parks']}회 (실패율: {fail_rate:.1f}%)\n")
-            f.write(f"- 총 출차: {depart_count}회\n")
- 
-            # --- EV 충전 통계 집계 ---
-            ev_df = df[df['type'] == 'ev']
-            charge_starts = ev_df[ev_df['event'] == 'charge_start']
-            charge_fails = ev_df[ev_df['event'] == 'charge_fail']
-            
-            charge_try = len(charge_starts) + len(charge_fails)  # 실제 충전 시도 횟수
-            charge_success = len(charge_starts)  # 충전 시작된 횟수
-            charge_fail = len(charge_fails)  # 충전 실패 횟수
-
-            f.write(f"- EV 충전 시도: {charge_try}회\n")
-            f.write(f"  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)\n")
-            f.write(f"  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)\n")
-            
-    
+        # 평균 주차 시간 계산
+        park_events = df[df.event.isin(["park_start", "depart"])].copy()
+        park_events = park_events.sort_values(["id", "time"])
+        total_parking_time = 0
+        parking_count = 0
         
-        print(f"\n[INFO] 시뮬레이션 결과가 {filename}에 저장되었습니다.")
+        print("\n[디버깅] 주차 이벤트 분석:")
+        print(f"총 이벤트 수: {len(park_events)}")
+        print(f"주차 시작 이벤트 수: {len(park_events[park_events.event == 'park_start'])}")
+        print(f"출차 이벤트 수: {len(park_events[park_events.event == 'depart'])}")
+        
+        # 각 차량별로 주차 시작과 출차 이벤트를 매칭
+        for vehicle_id in park_events.id.unique():
+            v_events = park_events[park_events.id == vehicle_id].sort_values("time")
+            park_starts = v_events[v_events.event == "park_start"]
+            departs = v_events[v_events.event == "depart"]
+            
+            print(f"\n차량 {vehicle_id}:")
+            print(f"주차 시작 이벤트: {len(park_starts)}개")
+            print(f"출차 이벤트: {len(departs)}개")
+            
+            # 주차 시작과 출차 이벤트를 순서대로 매칭
+            for i in range(min(len(park_starts), len(departs))):
+                start_time = park_starts.iloc[i].time
+                end_time = departs.iloc[i].time
+                if end_time > start_time:  # 유효한 주차 시간인 경우만
+                    parking_duration = end_time - start_time
+                    total_parking_time += parking_duration
+                    parking_count += 1
+                    print(f"주차 시간: {parking_duration/3600:.2f}시간 (시작: {start_time/3600:.2f}시간, 종료: {end_time/3600:.2f}시간)")
+        
+        print(f"\n총 주차 시간: {total_parking_time/3600:.2f}시간")
+        print(f"주차 횟수: {parking_count}회")
+        
+        avg_parking_time = total_parking_time / parking_count if parking_count > 0 else 0
+        avg_parking_hours = avg_parking_time / 3600  # 초를 시간으로 변환
+        
+        # 주차장 상태 계산
+        total_spots = stats['total_parking_spots'] + stats['total_charger_spots']
+        total_parked = stats['total_parked']
+        occupied_normal = sum(1 for v in self.parking_manager.parked_vehicles.values() if v not in self.parking_manager.ev_chargers)
+        occupied_charger = sum(1 for v in self.parking_manager.parked_vehicles.values() if v in self.parking_manager.ev_chargers)
+        available_normal = stats['total_parking_spots'] - occupied_normal
+        available_charger = stats['total_charger_spots'] - occupied_charger
+        
+        # 성공률 계산
+        success_rate = (stats['successful_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
+        fail_rate = (stats['failed_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
+        
+        # EV 충전 통계 집계
+        ev_df = df[df['type'] == 'ev']
+        charge_starts = ev_df[ev_df['event'] == 'charge_start']
+        charge_fails = ev_df[ev_df['event'] == 'charge_fail']
+        
+        charge_try = len(charge_starts) + len(charge_fails)  # 실제 충전 시도 횟수
+        charge_success = len(charge_starts)  # 충전 시작된 횟수
+        charge_fail = len(charge_fails)  # 충전 실패 횟수
+        
+        # 결과 문자열 생성
+        result_str = f"""
+=== 시뮬레이션 결과 ===
+==== 시뮬레이션 결과 요약 ====
+
+[총 진행 시간]
+- {sim_time_str}
+
+[주차장 세팅]
+- 전체 주차면: {total_spots}면 (일반 {stats['total_parking_spots']} + 충전소 {stats['total_charger_spots']})
+- 충전소 수: {stats['total_charger_spots']}개
+- 일반 차량: {self.normal_count if self.normal_count is not None else 'N/A'}대
+- 전기차(EV): {self.ev_count if self.ev_count is not None else 'N/A'}대
+
+[현재 주차장 상태]
+- 전체 주차 차량: {total_parked} / {total_spots}
+  - 일반 주차면 점유: {occupied_normal} / {stats['total_parking_spots']}
+  - 충전소 점유: {occupied_charger} / {stats['total_charger_spots']}
+- 사용 가능 일반 주차면: {available_normal}
+- 사용 가능 충전소: {available_charger}
+
+[이용 통계]
+- 총 입차 시도: {stats['total_entries']}회
+  - 주차 성공: {stats['successful_parks']}회 (성공률: {success_rate:.1f}%)
+  - 주차 실패: {stats['failed_parks']}회 (실패율: {fail_rate:.1f}%)
+- 총 출차: {depart_count}회
+- 평균 주차 시간: {avg_parking_hours:.1f}시간
+- EV 충전 시도: {charge_try}회
+  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)
+  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)
+"""
+        
+        # 결과 출력
+        print("\n".join(result_str.splitlines()))
+        
+        # output_dir이 제공된 경우에만 파일로 저장
+        if output_dir:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = os.path.join(output_dir, f"simulation_summary_{timestamp}.txt")
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write("\n".join(result_str.splitlines()))
+            print(f"\n[INFO] 시뮬레이션 결과가 {filename}에 저장되었습니다.")
 
     def print_summary(self, output_dir: str = None) -> None:
         """
@@ -377,39 +428,56 @@ class ParkingSimulation:
         # 실패한 충전 시도 계산
         charge_fail_count = len(df[df.event == "charge_fail"]) if not df.empty else 0
         
-        print("\n==== 시뮬레이션 결과 요약 ====")
-        print(f"\n[총 진행 시간]")
-        print(f"- {sim_time_str}")
+        # 평균 주차 시간 계산
+        park_events = df[df.event.isin(["park_start", "depart"])].copy()
+        park_events = park_events.sort_values(["id", "time"])
+        total_parking_time = 0
+        parking_count = 0
         
-        print(f"\n[주차장 세팅]")
-        print(f"- 전체 주차면: {stats['total_parking_spots'] + stats['total_charger_spots']}면 (일반 {stats['total_parking_spots']} + 충전소 {stats['total_charger_spots']})")
-        print(f"- 충전소 수: {stats['total_charger_spots']}개")
-        print(f"- 일반 차량: {self.normal_count if self.normal_count is not None else 'N/A'}대")
-        print(f"- 전기차(EV): {self.ev_count if self.ev_count is not None else 'N/A'}대")
+        print("\n[디버깅] 주차 이벤트 분석:")
+        print(f"총 이벤트 수: {len(park_events)}")
+        print(f"주차 시작 이벤트 수: {len(park_events[park_events.event == 'park_start'])}")
+        print(f"출차 이벤트 수: {len(park_events[park_events.event == 'depart'])}")
         
-        print(f"\n[현재 주차장 상태]")
+        # 각 차량별로 주차 시작과 출차 이벤트를 매칭
+        for vehicle_id in park_events.id.unique():
+            v_events = park_events[park_events.id == vehicle_id].sort_values("time")
+            park_starts = v_events[v_events.event == "park_start"]
+            departs = v_events[v_events.event == "depart"]
+            
+            print(f"\n차량 {vehicle_id}:")
+            print(f"주차 시작 이벤트: {len(park_starts)}개")
+            print(f"출차 이벤트: {len(departs)}개")
+            
+            # 주차 시작과 출차 이벤트를 순서대로 매칭
+            for i in range(min(len(park_starts), len(departs))):
+                start_time = park_starts.iloc[i].time
+                end_time = departs.iloc[i].time
+                if end_time > start_time:  # 유효한 주차 시간인 경우만
+                    parking_duration = end_time - start_time
+                    total_parking_time += parking_duration
+                    parking_count += 1
+                    print(f"주차 시간: {parking_duration/3600:.2f}시간 (시작: {start_time/3600:.2f}시간, 종료: {end_time/3600:.2f}시간)")
+        
+        print(f"\n총 주차 시간: {total_parking_time/3600:.2f}시간")
+        print(f"주차 횟수: {parking_count}회")
+        
+        avg_parking_time = total_parking_time / parking_count if parking_count > 0 else 0
+        avg_parking_hours = avg_parking_time / 3600  # 초를 시간으로 변환
+        
+        # 주차장 상태 계산
         total_spots = stats['total_parking_spots'] + stats['total_charger_spots']
         total_parked = stats['total_parked']
         occupied_normal = sum(1 for v in self.parking_manager.parked_vehicles.values() if v not in self.parking_manager.ev_chargers)
         occupied_charger = sum(1 for v in self.parking_manager.parked_vehicles.values() if v in self.parking_manager.ev_chargers)
         available_normal = stats['total_parking_spots'] - occupied_normal
         available_charger = stats['total_charger_spots'] - occupied_charger
-
-        print(f"- 전체 주차 차량: {total_parked} / {total_spots}")
-        print(f"  - 일반 주차면 점유: {occupied_normal} / {stats['total_parking_spots']}")
-        print(f"  - 충전소 점유: {occupied_charger} / {stats['total_charger_spots']}")
-        print(f"- 사용 가능 일반 주차면: {available_normal}")
-        print(f"- 사용 가능 충전소: {available_charger}")
         
-        print(f"\n[이용 통계]")
-        print(f"- 총 입차 시도: {stats['total_entries']}회")
+        # 성공률 계산
         success_rate = (stats['successful_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
         fail_rate = (stats['failed_parks'] / stats['total_entries'] * 100) if stats['total_entries'] > 0 else 0
-        print(f"  - 주차 성공: {stats['successful_parks']}회 (성공률: {success_rate:.1f}%)")
-        print(f"  - 주차 실패: {stats['failed_parks']}회 (실패율: {fail_rate:.1f}%)")
-        print(f"- 총 출차: {depart_count}회")
-
-        # --- EV 충전 통계 집계 ---
+        
+        # EV 충전 통계 집계
         ev_df = df[df['type'] == 'ev']
         charge_starts = ev_df[ev_df['event'] == 'charge_start']
         charge_fails = ev_df[ev_df['event'] == 'charge_fail']
@@ -417,16 +485,49 @@ class ParkingSimulation:
         charge_try = len(charge_starts) + len(charge_fails)  # 실제 충전 시도 횟수
         charge_success = len(charge_starts)  # 충전 시작된 횟수
         charge_fail = len(charge_fails)  # 충전 실패 횟수
-
-        print(f"- EV 충전 시도: {charge_try}회")
-        print(f"  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)")
-        print(f"  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)")
         
-       
+        # 결과 문자열 생성
+        result_str = f"""
+=== 시뮬레이션 결과 ===
+==== 시뮬레이션 결과 요약 ====
+
+[총 진행 시간]
+- {sim_time_str}
+
+[주차장 세팅]
+- 전체 주차면: {total_spots}면 (일반 {stats['total_parking_spots']} + 충전소 {stats['total_charger_spots']})
+- 충전소 수: {stats['total_charger_spots']}개
+- 일반 차량: {self.normal_count if self.normal_count is not None else 'N/A'}대
+- 전기차(EV): {self.ev_count if self.ev_count is not None else 'N/A'}대
+
+[현재 주차장 상태]
+- 전체 주차 차량: {total_parked} / {total_spots}
+  - 일반 주차면 점유: {occupied_normal} / {stats['total_parking_spots']}
+  - 충전소 점유: {occupied_charger} / {stats['total_charger_spots']}
+- 사용 가능 일반 주차면: {available_normal}
+- 사용 가능 충전소: {available_charger}
+
+[이용 통계]
+- 총 입차 시도: {stats['total_entries']}회
+  - 주차 성공: {stats['successful_parks']}회 (성공률: {success_rate:.1f}%)
+  - 주차 실패: {stats['failed_parks']}회 (실패율: {fail_rate:.1f}%)
+- 총 출차: {depart_count}회
+- 평균 주차 시간: {avg_parking_hours:.1f}시간
+- EV 충전 시도: {charge_try}회
+  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)
+  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)
+"""
+        
+        # 결과 출력
+        print("\n".join(result_str.splitlines()))
         
         # output_dir이 제공된 경우에만 파일로 저장
         if output_dir:
-            self.save_summary_to_file(output_dir)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = os.path.join(output_dir, f"simulation_summary_{timestamp}.txt")
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write("\n".join(result_str.splitlines()))
+            print(f"\n[INFO] 시뮬레이션 결과가 {filename}에 저장되었습니다.")
 
     def generate_plots(self) -> None:
         """시뮬레이션 결과를 시각화하는 그래프를 생성"""
