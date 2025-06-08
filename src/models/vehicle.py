@@ -83,6 +83,8 @@ class Vehicle:
         self.state = new_state
         if new_state == "outside":
             self.stop_charging()
+            # 출차 시 새로운 주차 시간 설정
+            self.parking_duration = sample_parking_duration(self.arrival_time)
 
     def start_charging(self, current_time: float) -> None:
         """충전 시작"""

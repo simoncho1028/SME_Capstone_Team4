@@ -53,6 +53,17 @@ class ParkingManager:
     
     def _initialize_parking_map(self):
         """주차장 맵 초기화"""
+        # 기존 데이터 초기화
+        self.available_spots = []
+        self.available_chargers = []
+        self.available_spots_by_floor = {}
+        self.available_chargers_by_floor = {}
+        self.normal_spots = set()
+        self.ev_chargers = set()
+        self.total_parking_spots = 0
+        self.total_charger_spots = 0
+        
+        # 주차장 맵 초기화
         for floor, floor_map in PARKING_MAPS.items():
             self.available_spots_by_floor[floor] = []
             self.available_chargers_by_floor[floor] = []
@@ -63,13 +74,16 @@ class ParkingManager:
                     if cell == CELL_PARK:  # 일반 주차면
                         self.available_spots.append(spot)
                         self.available_spots_by_floor[floor].append(spot)
-                        self.normal_spots.add(spot)  # 일반구역 집합에 추가
+                        self.normal_spots.add(spot)
                         self.total_parking_spots += 1
                     elif cell == CELL_CHARGER:  # 충전소
                         self.available_chargers.append(spot)
                         self.available_chargers_by_floor[floor].append(spot)
                         self.ev_chargers.add(spot)
                         self.total_charger_spots += 1
+        
+        print(f"[DEBUG] 초기화된 주차면 수: {self.total_parking_spots}")
+        print(f"[DEBUG] 초기화된 충전소 수: {self.total_charger_spots}")
     
     def set_env(self, env):
         """SimPy 환경 설정"""
@@ -91,111 +105,84 @@ class ParkingManager:
         """사용 가능한 충전소 수 반환"""
         return len([spot for spot in self.available_chargers if self.is_spot_available(spot)])
     
-    def park_vehicle(self, vehicle: Vehicle) -> tuple:
+    def find_parking_spot(self) -> Optional[Tuple[str, int, int]]:
+        """
+        사용 가능한 일반 주차면을 찾습니다.
+        
+        Returns:
+            Optional[Tuple[str, int, int]]: (floor, row, column) 또는 None
+        """
+        # 현재 사용 중인 주차면 제외
+        available_spots = []
+        for spot in self.available_spots:
+            if spot not in self.parking_spots and spot in self.normal_spots:
+                available_spots.append(spot)
+        
+        if not available_spots:
+            return None
+        return random.choice(available_spots)
+    
+    def find_ev_charger(self) -> Optional[Tuple[str, int, int]]:
+        """
+        사용 가능한 EV 충전기를 찾습니다.
+        
+        Returns:
+            Optional[Tuple[str, int, int]]: (floor, row, column) 또는 None
+        """
+        # 현재 사용 중인 충전기 제외
+        available_chargers = []
+        for spot in self.available_chargers:
+            if spot not in self.parking_spots and spot in self.ev_chargers:
+                available_chargers.append(spot)
+        
+        if not available_chargers:
+            return None
+        return random.choice(available_chargers)
+    
+    def get_occupied_normal_count(self) -> int:
+        """일반 주차면에 주차된 차량 수 반환"""
+        return sum(1 for v in self.parked_vehicles.values() if v not in self.ev_chargers)
+
+    def park_vehicle(self, vehicle: Vehicle) -> Tuple[bool, bool]:
         """
         차량을 주차합니다.
+        
+        Args:
+            vehicle: 주차할 차량
+            
         Returns:
-            (주차 성공 여부, charge_fail 여부)
+            Tuple[bool, bool]: (주차 성공 여부, 충전 실패 여부)
         """
-        if vehicle.vehicle_id in self.parked_vehicles:
-            return (False, False)
-
-        # EV 차량이면서 충전이 필요한 경우에만 충전소 시도
+        # 주차 가능한 위치 찾기
         if vehicle.vehicle_type == "ev" and vehicle.needs_charging():
-            available_chargers = [spot for spot in self.available_chargers if self.is_spot_available(spot)]
-            if available_chargers:
-                # 자신의 동과 가장 가까운 충전소 찾기
-                building = vehicle.building_id
-                building_x, building_y = self.parking_system.building_coordinates[building]
-                
-                # 각 충전소까지의 거리 계산
-                charger_distances = []
-                for spot in available_chargers:
-                    floor, row, col = spot
-                    distance = self.parking_system.calculate_distance(building_x, building_y, row, col)
-                    charger_distances.append((spot, distance))
-                
-                # 거리순으로 정렬
-                charger_distances.sort(key=lambda x: x[1])
-                min_distance = charger_distances[0][1]
-                
-                # 최단 거리와 동일한 거리를 가진 충전소들 필터링
-                closest_chargers = [spot for spot, dist in charger_distances if dist == min_distance]
-                
-                # 동일 거리 충전소가 여러 개인 경우 랜덤 선택
-                spot = random.choice(closest_chargers)
-                
-                self.parked_vehicles[vehicle.vehicle_id] = spot
-                self.parking_spots[spot] = vehicle.vehicle_id
-                vehicle.update_state("parked")
-                if self.env:
-                    vehicle.start_charging(self.env.now)
-                return (True, False)
+            # EV이고 충전이 필요한 경우 충전소 찾기
+            position = self.find_ev_charger()
+            if position:
+                self.parked_vehicles[vehicle.vehicle_id] = position
+                self.parking_spots[position] = vehicle.vehicle_id
+                if position in self.available_chargers:
+                    self.available_chargers.remove(position)
+                return True, False
             else:
-                # 충전소 만차: 일반구역(충전소가 아닌 곳)만 시도
-                available_normal = [spot for spot in self.normal_spots if self.is_spot_available(spot)]
-                if available_normal:
-                    # 자신의 동과 가장 가까운 일반 주차면 찾기
-                    building = vehicle.building_id
-                    building_x, building_y = self.parking_system.building_coordinates[building]
-                    
-                    # 각 주차면까지의 거리 계산
-                    spot_distances = []
-                    for spot in available_normal:
-                        floor, row, col = spot
-                        distance = self.parking_system.calculate_distance(building_x, building_y, row, col)
-                        spot_distances.append((spot, distance))
-                    
-                    # 거리순으로 정렬
-                    spot_distances.sort(key=lambda x: x[1])
-                    min_distance = spot_distances[0][1]
-                    
-                    # 최단 거리와 동일한 거리를 가진 주차면들 필터링
-                    closest_spots = [spot for spot, dist in spot_distances if dist == min_distance]
-                    
-                    # 동일 거리 주차면이 여러 개인 경우 랜덤 선택
-                    spot = random.choice(closest_spots)
-                    
-                    self.parked_vehicles[vehicle.vehicle_id] = spot
-                    self.parking_spots[spot] = vehicle.vehicle_id
-                    vehicle.update_state("parked")
-                    # charge_fail 이벤트 로깅을 위해 True 반환
-                    return (True, True)  # charge_fail: True
-                self.double_parked.add(vehicle.vehicle_id)
-                vehicle.update_state("double_parked")
-                return (False, True)  # park_fail + charge_fail
-
-        # 일반 차량 또는 충전이 필요하지 않은 EV: 반드시 일반구역만 시도
-        available_normal = [spot for spot in self.normal_spots if self.is_spot_available(spot)]
-        if available_normal:
-            # 자신의 동과 가장 가까운 일반 주차면 찾기
-            building = vehicle.building_id
-            building_x, building_y = self.parking_system.building_coordinates[building]
-            
-            # 각 주차면까지의 거리 계산
-            spot_distances = []
-            for spot in available_normal:
-                floor, row, col = spot
-                distance = self.parking_system.calculate_distance(building_x, building_y, row, col)
-                spot_distances.append((spot, distance))
-            
-            # 거리순으로 정렬
-            spot_distances.sort(key=lambda x: x[1])
-            min_distance = spot_distances[0][1]
-            
-            # 최단 거리와 동일한 거리를 가진 주차면들 필터링
-            closest_spots = [spot for spot, dist in spot_distances if dist == min_distance]
-            
-            # 동일 거리 주차면이 여러 개인 경우 랜덤 선택
-            spot = random.choice(closest_spots)
-            
-            self.parked_vehicles[vehicle.vehicle_id] = spot
-            self.parking_spots[spot] = vehicle.vehicle_id
-            vehicle.update_state("parked")
-            return (True, False)
-        self.double_parked.add(vehicle.vehicle_id)
-        vehicle.update_state("double_parked")
-        return (False, False)
+                # 충전소가 없으면 일반 주차면 찾기
+                position = self.find_parking_spot()
+                if position:
+                    self.parked_vehicles[vehicle.vehicle_id] = position
+                    self.parking_spots[position] = vehicle.vehicle_id
+                    if position in self.available_spots:
+                        self.available_spots.remove(position)
+                    return True, True
+                return False, True
+        else:
+            # 일반 차량이거나 충전이 필요 없는 EV는 일반 주차면 찾기
+            position = self.find_parking_spot()
+            if position:
+                self.parked_vehicles[vehicle.vehicle_id] = position
+                self.parking_spots[position] = vehicle.vehicle_id
+                if position in self.available_spots:
+                    self.available_spots.remove(position)
+                return True, False
+            return False, False
 
     def exit_vehicle(self, vehicle: Vehicle) -> bool:
         """
@@ -223,6 +210,18 @@ class ParkingManager:
             del self.parked_vehicles[vehicle.vehicle_id]
             if spot in self.parking_spots:
                 del self.parking_spots[spot]
+            
+            # 사용 가능한 주차면 목록에 추가
+            if spot in self.ev_chargers:
+                if spot not in self.available_chargers:
+                    self.available_chargers.append(spot)
+                if spot not in self.available_chargers_by_floor[spot[0]]:
+                    self.available_chargers_by_floor[spot[0]].append(spot)
+            else:
+                if spot not in self.available_spots:
+                    self.available_spots.append(spot)
+                if spot not in self.available_spots_by_floor[spot[0]]:
+                    self.available_spots_by_floor[spot[0]].append(spot)
             
             # ParkingSystem에서 주차면 해제
             floor, row, col = spot
@@ -421,7 +420,8 @@ class ParkingManager:
         )
 
         # 주차 시도
-        if self.park_vehicle(vehicle):
+        park_success, charge_fail = self.park_vehicle(vehicle)
+        if park_success:
             # 주차 성공 시 로그 기록
             spot = self.parked_vehicles[vehicle.vehicle_id]
             floor = self.convert_to_internal_floor_name(spot[0])

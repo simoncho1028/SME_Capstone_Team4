@@ -354,7 +354,7 @@ def main():
     if not args.no_save_csv:
         sim.print_summary(results_dir)  # results_dir 전달
     else:
-        sim.print_summary()  # 파일 저장 없이 출력만
+        sim.print_summary(".")  # 현재 디렉토리 사용
     
     # 결과 CSV 저장
     if not args.no_save_csv:

@@ -67,7 +67,7 @@ class ParkingSimulation:
         # 하루 단위 입차 계획
         self.daily_entry_plan: List[float] = []
 
-    def log_event(self, vehicle: Vehicle, event: str) -> None:
+    def log_event(self, vehicle: Vehicle, event: str, results_dir: str = None) -> None:
         """이벤트 로깅"""
         pos = None
         floor = None
@@ -76,7 +76,6 @@ class ParkingSimulation:
             if vehicle_pos:
                 floor = vehicle_pos[0]  # 층 정보
                 pos = (vehicle_pos[1], vehicle_pos[2])  # (row, col)
-            
         self.logger.add_event(
             time=self.env.now,
             vehicle_id=vehicle.vehicle_id,
@@ -87,48 +86,54 @@ class ParkingSimulation:
             building=vehicle.building_id,
             floor=floor
         )
+        # park_success 시 이동 거리 기록
+        if event == "park_success" and pos is not None:
+            building_coords = self.parking_manager.parking_system.building_coordinates
+            bx, by = building_coords.get(vehicle.building_id, (None, None))
+            if bx is not None and by is not None:
+                distance = abs(bx - pos[0]) + abs(by - pos[1])
+                # results_dir이 None이면 로거의 log_file이 있는 디렉토리 사용
+                if results_dir is None:
+                    results_dir = os.path.dirname(self.logger.log_file)
+                distance_path = os.path.join(results_dir, "distance_log.csv")
+                write_header = not os.path.exists(distance_path)
+                with open(distance_path, "a", encoding="utf-8") as f:
+                    if write_header:
+                        f.write("id,type,distance\n")
+                    f.write(f"{vehicle.vehicle_id},{vehicle.vehicle_type},{distance}\n")
 
-    def handle_vehicle_entry(self, vehicle: Vehicle) -> None:
+    def handle_vehicle_entry(self, vehicle: Vehicle, results_dir: str = None) -> None:
         """
         차량 입차 처리
-        
         Args:
             vehicle: 입차하는 차량
+            results_dir: 결과 저장 디렉토리 경로
         """
         self.stats["total_entries"] += 1
-        self.log_event(vehicle, "arrive")
-        
+        self.log_event(vehicle, "arrive", results_dir)
         # 차량을 active_vehicles에 추가
         self.active_vehicles[vehicle.vehicle_id] = vehicle
-        
         # park_vehicle의 반환값: (주차성공, charge_fail)
         park_success, charge_fail = self.parking_manager.park_vehicle(vehicle)
         if charge_fail:
-            # charge_fail 이벤트 로깅 추가
-            self.log_event(vehicle, "charge_fail")
-            # 통계에 반영
+            self.log_event(vehicle, "charge_fail", results_dir)
             if "charge_fail" not in self.stats:
                 self.stats["charge_fail"] = 0
             self.stats["charge_fail"] += 1
         if park_success:
             self.stats["successful_parks"] += 1
-            self.log_event(vehicle, "park_success")
-            
-            # 주차 성공 시 출차 프로세스 시작
+            self.log_event(vehicle, "park_success", results_dir)
             self.env.process(self.vehicle_exit_process(vehicle))
-            
-            # 전기차이고 충전이 필요하며 충전소에 주차된 경우에만 충전 시작
             if (vehicle.vehicle_type == "ev" and 
                 vehicle.needs_charging() and 
                 self.parking_manager.get_vehicle_position(vehicle.vehicle_id) in self.parking_manager.ev_chargers):
                 vehicle.start_charging(self.env.now)
                 self.stats["total_charges"] += 1
-                self.log_event(vehicle, "charge_start")
-                # 충전 완료 예약 프로세스 추가
+                self.log_event(vehicle, "charge_start", results_dir)
                 self.env.process(self.ev_charge_complete_process(vehicle))
         else:
             self.stats["failed_parks"] += 1
-            self.log_event(vehicle, "park_fail")
+            self.log_event(vehicle, "park_fail", results_dir)
 
     def handle_vehicle_exit(self, vehicle: Vehicle) -> None:
         """
@@ -184,26 +189,21 @@ class ParkingSimulation:
             # 새로운 하루의 입차 계획 수립
             self.plan_daily_entries(self.env.now)
     
-    def vehicle_entry_process(self):
+    def vehicle_entry_process(self, results_dir: str = None):
         """
         입차 계획에 따라 차량을 입차시키는 프로세스
         """
         while True:
             if self.daily_entry_plan:
-                # 가장 빠른 입차 예정 시간 확인
                 next_entry_time = self.daily_entry_plan[0]
-                # 입차 시간까지 대기
                 if next_entry_time > self.env.now:
                     yield self.env.timeout(next_entry_time - self.env.now)
-                # 입차 대상 차량을 outside_vehicles에서 랜덤하게 뽑음
                 if self.outside_vehicles:
                     vehicle_id, vehicle = random.choice(list(self.outside_vehicles.items()))
                     self.outside_vehicles.pop(vehicle_id)
-                    self.handle_vehicle_entry(vehicle)
-                # 처리된 입차 시간 제거
+                    self.handle_vehicle_entry(vehicle, results_dir)
                 self.daily_entry_plan.pop(0)
             else:
-                # 다음 계획이 수립될 때까지 1분 대기
                 yield self.env.timeout(60)
 
     def vehicle_exit_process(self, vehicle: Vehicle):
@@ -227,23 +227,16 @@ class ParkingSimulation:
             yield self.env.timeout(vehicle.assigned_charging_time * 60)  # 분 -> 초
             self.log_event(vehicle, "charge_complete")
 
-    def run(self, until: float) -> None:
+    def run(self, until: float, results_dir: str = None) -> None:
         """
         시뮬레이션 실행
-        
         Args:
             until: 시뮬레이션 종료 시각 (초)
+            results_dir: 결과 저장 디렉토리 경로
         """
-        # 초기 입차 계획 수립
         self.plan_daily_entries(self.env.now)
-        
-        # 일일 계획 수립 프로세스 시작
         self.env.process(self.daily_planning_process())
-        
-        # 차량 입차 프로세스 시작
-        self.env.process(self.vehicle_entry_process())
-        
-        # 시뮬레이션 실행
+        self.env.process(self.vehicle_entry_process(results_dir))
         self.env.run(until=until)
 
     def get_statistics(self) -> Dict:
@@ -254,7 +247,7 @@ class ParkingSimulation:
 
     def save_summary_to_file(self, output_dir: str) -> None:
         """
-        시뮬레이션 결과 요약을 파일로 저장합니다.
+        시뮬레이션 결과를 파일로 저장합니다.
         
         Args:
             output_dir: 저장할 디렉토리 경로
@@ -283,24 +276,19 @@ class ParkingSimulation:
         charge_fail_count = len(df[df.event == "charge_fail"]) if not df.empty else 0
         
         # 평균 주차 시간 계산
-        park_events = df[df.event.isin(["park_start", "depart"])].copy()
+        park_events = df[df.event.isin(["park_success", "depart"])].copy()
         park_events = park_events.sort_values(["id", "time"])
         total_parking_time = 0
         parking_count = 0
         
-        print("\n[디버깅] 주차 이벤트 분석:")
-        print(f"총 이벤트 수: {len(park_events)}")
-        print(f"주차 시작 이벤트 수: {len(park_events[park_events.event == 'park_start'])}")
-        print(f"출차 이벤트 수: {len(park_events[park_events.event == 'depart'])}")
-        
         # 각 차량별로 주차 시작과 출차 이벤트를 매칭
         for vehicle_id in park_events.id.unique():
             v_events = park_events[park_events.id == vehicle_id].sort_values("time")
-            park_starts = v_events[v_events.event == "park_start"]
+            park_starts = v_events[v_events.event == "park_success"]
             departs = v_events[v_events.event == "depart"]
             
             print(f"\n차량 {vehicle_id}:")
-            print(f"주차 시작 이벤트: {len(park_starts)}개")
+            print(f"주차 성공 이벤트: {len(park_starts)}개")
             print(f"출차 이벤트: {len(departs)}개")
             
             # 주차 시작과 출차 이벤트를 순서대로 매칭
@@ -360,6 +348,111 @@ class ParkingSimulation:
         except Exception:
             pass
         
+        # 만차 시간 계산
+        full_capacity_time = 0
+        last_time = None
+        last_occupied = 0  # 초기값을 0으로 설정
+        
+        # 시간대별 주차 상태 분석
+        time_slots = []
+        for _, row in df.iterrows():
+            if row['event'] in ['park_success', 'depart']:
+                time_slots.append((row['time'], row['event']))
+        
+        time_slots.sort(key=lambda x: x[0])
+        
+        # 각 시간대별로 주차 상태 추적
+        full_capacity_periods = []
+        daily_full_capacity = {}  # 일자별 만차 시간 저장
+        
+        for time, event in time_slots:
+            if event == 'park_success':
+                current_occupied = last_occupied + 1
+            elif event == 'depart':
+                current_occupied = last_occupied - 1
+            
+            if last_time is not None:
+                # 이전 시간대가 만차였다면 그 시간만큼 더함
+                if last_occupied >= stats['total_parking_spots']:
+                    period = time - last_time
+                    full_capacity_time += period
+                    full_capacity_periods.append((last_time, time, period))
+                    
+                    # 일자별 만차 시간 계산
+                    start_day = int(last_time / (24 * 3600))
+                    end_day = int(time / (24 * 3600))
+                    
+                    if start_day == end_day:
+                        # 같은 날짜 내의 만차 시간
+                        if start_day not in daily_full_capacity:
+                            daily_full_capacity[start_day] = 0
+                        daily_full_capacity[start_day] += period
+                    else:
+                        # 날짜가 바뀌는 경우
+                        # 시작 날짜의 남은 시간
+                        if start_day not in daily_full_capacity:
+                            daily_full_capacity[start_day] = 0
+                        daily_full_capacity[start_day] += (24 * 3600) - (last_time % (24 * 3600))
+                        
+                        # 중간 날짜들은 하루 전체
+                        for day in range(start_day + 1, end_day):
+                            if day not in daily_full_capacity:
+                                daily_full_capacity[day] = 0
+                            daily_full_capacity[day] += 24 * 3600
+                        
+                        # 마지막 날짜의 시간
+                        if end_day not in daily_full_capacity:
+                            daily_full_capacity[end_day] = 0
+                        daily_full_capacity[end_day] += time % (24 * 3600)
+            
+            last_time = time
+            last_occupied = current_occupied
+        
+        # 마지막 시간까지 만차였다면 그 시간도 더함
+        if last_occupied >= stats['total_parking_spots']:
+            period = self.env.now - last_time
+            full_capacity_time += period
+            full_capacity_periods.append((last_time, self.env.now, period))
+            
+            # 마지막 만차 기간의 일자별 계산
+            start_day = int(last_time / (24 * 3600))
+            end_day = int(self.env.now / (24 * 3600))
+            
+            if start_day == end_day:
+                if start_day not in daily_full_capacity:
+                    daily_full_capacity[start_day] = 0
+                daily_full_capacity[start_day] += period
+            else:
+                # 시작 날짜의 남은 시간
+                if start_day not in daily_full_capacity:
+                    daily_full_capacity[start_day] = 0
+                daily_full_capacity[start_day] += (24 * 3600) - (last_time % (24 * 3600))
+                
+                # 중간 날짜들은 하루 전체
+                for day in range(start_day + 1, end_day):
+                    if day not in daily_full_capacity:
+                        daily_full_capacity[day] = 0
+                    daily_full_capacity[day] += 24 * 3600
+                
+                # 마지막 날짜의 시간
+                if end_day not in daily_full_capacity:
+                    daily_full_capacity[end_day] = 0
+                daily_full_capacity[end_day] += self.env.now % (24 * 3600)
+        
+        # 만차 시간을 분 단위로 변환
+        full_capacity_minutes = full_capacity_time / 60
+        
+        print("\n=== 일자별 만차 시간 ===")
+        for day in sorted(daily_full_capacity.keys()):
+            minutes = daily_full_capacity[day] / 60
+            print(f"Day {day + 1}: {minutes:.1f}분")
+        print(f"전체 만차 시간: {full_capacity_minutes:.1f}분")
+        
+        if full_capacity_periods:
+            print("\n만차 기간 상세:")
+            for start, end, duration in full_capacity_periods:
+                print(f"- 시작: {start/3600:.2f}시간, 종료: {end/3600:.2f}시간, 지속: {duration/60:.2f}분")
+        
         # 결과 문자열 생성
         result_str = f"""
 === 시뮬레이션 결과 ===
@@ -388,14 +481,15 @@ class ParkingSimulation:
 - 총 출차: {depart_count}회
 - 평균 주차 시간: {avg_parking_hours:.1f}시간
 - EV 충전 시도: {charge_try}회
-  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)
-  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)
+  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100 if charge_try > 0 else 0):.1f}%)
+  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100 if charge_try > 0 else 0):.1f}%)
 
 [지표]
-- 충전소 개수 : {stats['total_charger_spots']}개
-- 충전 실패율 : {(charge_fail/charge_try*100) if charge_try else 0:.1f} %
-- 평균 distance (일반 차량) : {avg_normal_dist}
-- 평균 distance (EV) : {avg_ev_dist}
+- 충전소 개수: {stats['total_charger_spots']}개
+- 충전 실패율: {(charge_fail/charge_try*100 if charge_try > 0 else 0):.1f}%
+- 평균 distance (일반 차량): {avg_normal_dist}칸
+- 평균 distance (EV): {avg_ev_dist}칸
+- 일반차 만차 시간: {full_capacity_minutes:.1f}분
 """
         
         # 결과 출력
@@ -436,24 +530,19 @@ class ParkingSimulation:
         charge_fail_count = len(df[df.event == "charge_fail"]) if not df.empty else 0
         
         # 평균 주차 시간 계산
-        park_events = df[df.event.isin(["park_start", "depart"])].copy()
+        park_events = df[df.event.isin(["park_success", "depart"])].copy()
         park_events = park_events.sort_values(["id", "time"])
         total_parking_time = 0
         parking_count = 0
         
-        print("\n[디버깅] 주차 이벤트 분석:")
-        print(f"총 이벤트 수: {len(park_events)}")
-        print(f"주차 시작 이벤트 수: {len(park_events[park_events.event == 'park_start'])}")
-        print(f"출차 이벤트 수: {len(park_events[park_events.event == 'depart'])}")
-        
         # 각 차량별로 주차 시작과 출차 이벤트를 매칭
         for vehicle_id in park_events.id.unique():
             v_events = park_events[park_events.id == vehicle_id].sort_values("time")
-            park_starts = v_events[v_events.event == "park_start"]
+            park_starts = v_events[v_events.event == "park_success"]
             departs = v_events[v_events.event == "depart"]
             
             print(f"\n차량 {vehicle_id}:")
-            print(f"주차 시작 이벤트: {len(park_starts)}개")
+            print(f"주차 성공 이벤트: {len(park_starts)}개")
             print(f"출차 이벤트: {len(departs)}개")
             
             # 주차 시작과 출차 이벤트를 순서대로 매칭
@@ -513,6 +602,111 @@ class ParkingSimulation:
         except Exception:
             pass
         
+        # 만차 시간 계산
+        full_capacity_time = 0
+        last_time = None
+        last_occupied = 0  # 초기값을 0으로 설정
+        
+        # 시간대별 주차 상태 분석
+        time_slots = []
+        for _, row in df.iterrows():
+            if row['event'] in ['park_success', 'depart']:
+                time_slots.append((row['time'], row['event']))
+        
+        time_slots.sort(key=lambda x: x[0])
+        
+        # 각 시간대별로 주차 상태 추적
+        full_capacity_periods = []
+        daily_full_capacity = {}  # 일자별 만차 시간 저장
+        
+        for time, event in time_slots:
+            if event == 'park_success':
+                current_occupied = last_occupied + 1
+            elif event == 'depart':
+                current_occupied = last_occupied - 1
+            
+            if last_time is not None:
+                # 이전 시간대가 만차였다면 그 시간만큼 더함
+                if last_occupied >= stats['total_parking_spots']:
+                    period = time - last_time
+                    full_capacity_time += period
+                    full_capacity_periods.append((last_time, time, period))
+                    
+                    # 일자별 만차 시간 계산
+                    start_day = int(last_time / (24 * 3600))
+                    end_day = int(time / (24 * 3600))
+                    
+                    if start_day == end_day:
+                        # 같은 날짜 내의 만차 시간
+                        if start_day not in daily_full_capacity:
+                            daily_full_capacity[start_day] = 0
+                        daily_full_capacity[start_day] += period
+                    else:
+                        # 날짜가 바뀌는 경우
+                        # 시작 날짜의 남은 시간
+                        if start_day not in daily_full_capacity:
+                            daily_full_capacity[start_day] = 0
+                        daily_full_capacity[start_day] += (24 * 3600) - (last_time % (24 * 3600))
+                        
+                        # 중간 날짜들은 하루 전체
+                        for day in range(start_day + 1, end_day):
+                            if day not in daily_full_capacity:
+                                daily_full_capacity[day] = 0
+                            daily_full_capacity[day] += 24 * 3600
+                        
+                        # 마지막 날짜의 시간
+                        if end_day not in daily_full_capacity:
+                            daily_full_capacity[end_day] = 0
+                        daily_full_capacity[end_day] += time % (24 * 3600)
+            
+            last_time = time
+            last_occupied = current_occupied
+        
+        # 마지막 시간까지 만차였다면 그 시간도 더함
+        if last_occupied >= stats['total_parking_spots']:
+            period = self.env.now - last_time
+            full_capacity_time += period
+            full_capacity_periods.append((last_time, self.env.now, period))
+            
+            # 마지막 만차 기간의 일자별 계산
+            start_day = int(last_time / (24 * 3600))
+            end_day = int(self.env.now / (24 * 3600))
+            
+            if start_day == end_day:
+                if start_day not in daily_full_capacity:
+                    daily_full_capacity[start_day] = 0
+                daily_full_capacity[start_day] += period
+            else:
+                # 시작 날짜의 남은 시간
+                if start_day not in daily_full_capacity:
+                    daily_full_capacity[start_day] = 0
+                daily_full_capacity[start_day] += (24 * 3600) - (last_time % (24 * 3600))
+                
+                # 중간 날짜들은 하루 전체
+                for day in range(start_day + 1, end_day):
+                    if day not in daily_full_capacity:
+                        daily_full_capacity[day] = 0
+                    daily_full_capacity[day] += 24 * 3600
+                
+                # 마지막 날짜의 시간
+                if end_day not in daily_full_capacity:
+                    daily_full_capacity[end_day] = 0
+                daily_full_capacity[end_day] += self.env.now % (24 * 3600)
+        
+        # 만차 시간을 분 단위로 변환
+        full_capacity_minutes = full_capacity_time / 60
+        
+        print("\n=== 일자별 만차 시간 ===")
+        for day in sorted(daily_full_capacity.keys()):
+            minutes = daily_full_capacity[day] / 60
+            print(f"Day {day + 1}: {minutes:.1f}분")
+        print(f"전체 만차 시간: {full_capacity_minutes:.1f}분")
+        
+        if full_capacity_periods:
+            print("\n만차 기간 상세:")
+            for start, end, duration in full_capacity_periods:
+                print(f"- 시작: {start/3600:.2f}시간, 종료: {end/3600:.2f}시간, 지속: {duration/60:.2f}분")
+        
         # 결과 문자열 생성
         result_str = f"""
 === 시뮬레이션 결과 ===
@@ -541,14 +735,15 @@ class ParkingSimulation:
 - 총 출차: {depart_count}회
 - 평균 주차 시간: {avg_parking_hours:.1f}시간
 - EV 충전 시도: {charge_try}회
-  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)
-  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)
+  - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100 if charge_try > 0 else 0):.1f}%)
+  - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100 if charge_try > 0 else 0):.1f}%)
 
 [지표]
-- 충전소 개수 : {stats['total_charger_spots']}개
-- 충전 실패율 : {(charge_fail/charge_try*100) if charge_try else 0:.1f} %
-- 평균 distance (일반 차량) : {avg_normal_dist}
-- 평균 distance (EV) : {avg_ev_dist}
+- 충전소 개수: {stats['total_charger_spots']}개
+- 충전 실패율: {(charge_fail/charge_try*100 if charge_try > 0 else 0):.1f}%
+- 평균 distance (일반 차량): {avg_normal_dist}칸
+- 평균 distance (EV): {avg_ev_dist}칸
+- 일반차 만차 시간: {full_capacity_minutes:.1f}분
 """
         
         # 결과 출력
