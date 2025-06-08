@@ -54,21 +54,33 @@ class Vehicle:
             wait_time = self.arrival_time - self.env.now
             yield self.env.timeout(wait_time)
         
-        # 입차 처리
-        self.parking_manager.handle_vehicle_entry(self)
+        # 최대 3번까지 주차 시도
+        max_attempts = 3
+        attempt = 0
         
-        # 주차 성공 여부 확인
-        if self.vehicle_id in self.parking_manager.parked_vehicles:
-            # 주차 시간 동안 대기
-            yield self.env.timeout(self.parking_duration)
+        while attempt < max_attempts:
+            # 입차 처리
+            self.parking_manager.handle_vehicle_entry(self)
             
-            # 출차 처리
-            self.parking_manager.handle_vehicle_exit(self)
-            
-            # 차량 상태를 outside로 변경
-            self.update_state("outside")
-        else:
-            print(f"[TEST] 차량 {self.vehicle_id} 주차 실패")
+            # 주차 성공 여부 확인
+            if self.vehicle_id in self.parking_manager.parked_vehicles:
+                # 주차 시간 동안 대기
+                yield self.env.timeout(self.parking_duration)
+                
+                # 출차 처리
+                self.parking_manager.handle_vehicle_exit(self)
+                
+                # 차량 상태를 outside로 변경
+                self.update_state("outside")
+                break
+            else:
+                attempt += 1
+                if attempt < max_attempts:
+                    # 5분 후에 재시도
+                    yield self.env.timeout(300)
+                else:
+                    print(f"[TEST] 차량 {self.vehicle_id} 주차 실패 (최대 시도 횟수 초과)")
+                    self.update_state("outside")
 
     def needs_charging(self) -> bool:
         """전기차의 충전 필요 여부 확인"""

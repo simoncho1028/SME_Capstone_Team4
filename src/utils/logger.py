@@ -11,6 +11,7 @@ import numpy as np
 import json
 import os
 import time
+import csv
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -46,16 +47,17 @@ class SimulationLogger:
         self.charge_log: List[ChargeLogEntry] = []
         
         # 로그 파일 초기화
-        with open(self.log_file, 'w', encoding='utf-8') as f:
-            f.write("time,id,event,floor,pos_r,pos_c,battery,parking_duration\n")
+        with open(self.log_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['time', 'vehicle_id', 'vehicle_type', 'event', 'floor', 'row', 'col', 'battery', 'building', 'parking_duration'])
         
         # 통계 초기화
         self.stats = {
-            "total_vehicles": 0,
-            "total_parked": 0,
-            "total_charged": 0,
-            "avg_parking_time": 0,
-            "avg_charging_time": 0
+            "total_entries": 0,
+            "successful_parks": 0,
+            "failed_parks": 0,
+            "total_charges": 0,
+            "daily_park_fails": {}  # 일자별 park_fail 통계 추가
         }
         
         self.arrivals_graph_path = 'arrivals_by_hour.png'
@@ -427,32 +429,41 @@ class SimulationLogger:
             return 0.0
         return fail_count / total_attempts
 
-    def log_event(self, time: float, vehicle_id: str, event: str, 
-                 floor: str = "", pos: tuple = None, battery: float = None,
-                 parking_duration: float = None) -> None:
-        """
-        시뮬레이션 이벤트를 로그 파일에 기록합니다.
+    def log_event(self, time: float, vehicle_id: str, event: str, vehicle_type: str = None, 
+                 floor: str = None, pos: tuple = None, battery: float = None, 
+                 building: str = None, parking_duration: float = None):
+        """이벤트 로깅"""
+        # 이벤트 저장
+        event_data = {
+            'time': time,
+            'vehicle_id': vehicle_id,
+            'vehicle_type': vehicle_type,
+            'event': event,
+            'floor': floor,
+            'row': pos[0] if pos else None,
+            'col': pos[1] if pos else None,
+            'battery': battery,
+            'building': building,
+            'parking_duration': parking_duration
+        }
+        self.log.append(event_data)
         
-        Args:
-            time: 이벤트 발생 시간
-            vehicle_id: 차량 ID
-            event: 이벤트 유형
-            floor: 주차 층
-            pos: 주차 위치 (row, col)
-            battery: 배터리 잔량
-            parking_duration: 주차 예정 시간
-        """
-        pos_r = pos[0] if pos else ""
-        pos_c = pos[1] if pos else ""
+        # CSV 파일에 기록
+        with open(self.log_file, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                time, vehicle_id, vehicle_type, event, floor,
+                pos[0] if pos else '', pos[1] if pos else '',
+                battery, building, parking_duration
+            ])
         
-        # 로그 파일에 이벤트 기록
-        with open(self.log_file, 'a', encoding='utf-8') as f:
-            f.write(f"{time},{vehicle_id},{event},{floor},{pos_r},{pos_c},{battery},{parking_duration}\n")
-            
-        # 통계 업데이트
-        if event == "park_success" and parking_duration is not None:
-            self.update_stats(event, parking_duration)
-    
+        # park_fail 이벤트인 경우 일자별 통계 업데이트
+        if event == "park_fail":
+            day = int(time // 86400)  # 일자 계산 (86400초 = 24시간)
+            if day not in self.stats["daily_park_fails"]:
+                self.stats["daily_park_fails"][day] = 0
+            self.stats["daily_park_fails"][day] += 1
+
     def update_stats(self, event: str, duration: float = 0) -> None:
         """
         통계 정보를 업데이트합니다.
@@ -462,19 +473,25 @@ class SimulationLogger:
             duration: 소요 시간
         """
         if event == "park_success":
-            self.stats["total_parked"] += 1
+            self.stats["successful_parks"] += 1
             self.stats["avg_parking_time"] = (
-                (self.stats["avg_parking_time"] * (self.stats["total_parked"] - 1) + duration)
-                / self.stats["total_parked"]
+                (self.stats["avg_parking_time"] * (self.stats["successful_parks"] - 1) + duration)
+                / self.stats["successful_parks"]
             )
         elif event == "charge_comp":
-            self.stats["total_charged"] += 1
+            self.stats["total_charges"] += 1
             self.stats["avg_charging_time"] = (
-                (self.stats["avg_charging_time"] * (self.stats["total_charged"] - 1) + duration)
-                / self.stats["total_charged"]
+                (self.stats["avg_charging_time"] * (self.stats["total_charges"] - 1) + duration)
+                / self.stats["total_charges"]
             )
     
     def save_stats(self) -> None:
-        """통계 정보를 파일에 저장합니다."""
+        """통계 정보를 JSON 파일로 저장"""
         with open(self.stats_file, 'w', encoding='utf-8') as f:
-            json.dump(self.stats, f, ensure_ascii=False, indent=2) 
+            json.dump(self.stats, f, ensure_ascii=False, indent=2)
+            
+        # 일자별 park_fail 통계 출력
+        print("\n=== 일자별 Park Fail 통계 ===")
+        for day, count in sorted(self.stats["daily_park_fails"].items()):
+            print(f"Day {day}: {count}회")
+        print("==========================\n") 

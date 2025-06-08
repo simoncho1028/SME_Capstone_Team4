@@ -1,0 +1,8 @@
+{
+    "charger_count": 20,
+    "charging_failure_rate": 13.6,
+    "avg_distance_normal": 11.9,
+    "avg_distance_ev": 11.0,
+    "full_parking_rate": 0.004916666666666666,
+    "installation_cost": 16000000
+}

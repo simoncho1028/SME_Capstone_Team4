@@ -10,11 +10,19 @@ from src.utils.helpers import sample_battery_level
 class ParkingManager:
     """주차장 관리자 클래스"""
     
-    def __init__(self):
-        """주차장 관리자 초기화"""
-        self.parked_vehicles = {}  # vehicle_id -> (floor, row, col)
+    def __init__(self, parking_system):
+        """
+        주차장 관리자 초기화
+        
+        Args:
+            parking_system: 주차장 시스템 객체
+        """
+        self.parking_system = parking_system
+        self.env = None
+        self.logger = None  # logger 초기화
+        self.parked_vehicles = {}  # vehicle_id -> position
+        self.parking_spots = {}  # position -> vehicle_id
         self.double_parked = set()  # 이중주차된 차량 ID 집합
-        self.parking_spots = {}  # (floor, row, col) -> vehicle_id
         self.ev_chargers = set()  # 충전소 위치 집합
         self.normal_spots = set()  # 일반구역 위치 집합 추가
         
@@ -29,12 +37,6 @@ class ParkingManager:
         # 주차장 맵에서 사용 가능한 주차면 찾기
         self.total_parking_spots = 0  # 전체 주차면 수 (충전소 제외)
         self.total_charger_spots = 0  # 전체 충전소 수
-        
-        # SimPy 환경 추가
-        self.env = None
-        
-        # 로거 추가
-        self.logger = None
         
         # ParkingSystem 인스턴스 추가
         self.parking_system = ParkingSystem()
@@ -172,6 +174,15 @@ class ParkingManager:
                     if position in self.available_spots:
                         self.available_spots.remove(position)
                     return True, True
+                # 주차 실패 시 로그 기록
+                if self.logger is not None:
+                    self.logger.log_event(
+                        time=self.env.now,
+                        vehicle_id=vehicle.vehicle_id,
+                        event="park_fail",
+                        vehicle_type=vehicle.vehicle_type,
+                        building=vehicle.building_id
+                    )
                 return False, True
         else:
             # 일반 차량이거나 충전이 필요 없는 EV는 일반 주차면 찾기
@@ -182,6 +193,15 @@ class ParkingManager:
                 if position in self.available_spots:
                     self.available_spots.remove(position)
                 return True, False
+            # 주차 실패 시 로그 기록
+            if self.logger is not None:
+                self.logger.log_event(
+                    time=self.env.now,
+                    vehicle_id=vehicle.vehicle_id,
+                    event="park_fail",
+                    vehicle_type=vehicle.vehicle_type,
+                    building=vehicle.building_id
+                )
             return False, False
 
     def exit_vehicle(self, vehicle: Vehicle) -> bool:

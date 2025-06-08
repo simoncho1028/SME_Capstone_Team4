@@ -21,6 +21,7 @@ import simpy
 import json
 from collections import defaultdict
 from src.utils.helpers import sample_battery_level
+from parking_system import ParkingSystem
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -278,8 +279,10 @@ def main():
         stats_file=os.path.join(results_dir, "simulation_stats.json")
     )
     
+    # 주차장 시스템 객체 생성
+    parking_system = ParkingSystem()
     # 주차장 관리자 초기화
-    parking_manager = ParkingManager()
+    parking_manager = ParkingManager(parking_system)
     
     # 충전소 할당
     parking_manager.allocate_chargers(args.charger)
