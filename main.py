@@ -99,6 +99,8 @@ def parse_args():
     parser.add_argument("--parking-capacity", type=int, default=866, help="전체 주차면 수 (기본값: 866)")
     parser.add_argument("--seed", type=int, default=42, help="랜덤 시드 (기본값: 42)")
     parser.add_argument('--charger', type=int, default=36, help='충전소 개수 (기본값: 36)')
+    parser.add_argument('--ratio', nargs=2, type=float, default=[1.0, 1.3],
+                        help='입차 비율 범위 (예: --ratio 1.0 1.3)')
     return parser.parse_args()
 
 
@@ -331,7 +333,9 @@ def main():
         logger=logger,
         total_vehicle_count=total_vehicles,
         normal_count=args.normal,
-        ev_count=args.ev
+        ev_count=args.ev,
+        ratio_min=args.ratio[0],
+        ratio_max=args.ratio[1]
     )
     
     # 차량 데이터 로드 및 차량 생성

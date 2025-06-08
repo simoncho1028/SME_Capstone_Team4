@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import random
 import numpy as np
+import csv
 
 from src.models.vehicle import Vehicle
 from src.models.parking_manager import ParkingManager
@@ -21,7 +22,9 @@ class ParkingSimulation:
                  logger: SimulationLogger,
                  total_vehicle_count: int = 866,
                  normal_count: int = None,
-                 ev_count: int = None):
+                 ev_count: int = None,
+                 ratio_min: float = 1.0,
+                 ratio_max: float = 1.3):
         """
         시뮬레이션 객체를 초기화합니다.
         
@@ -32,6 +35,8 @@ class ParkingSimulation:
             total_vehicle_count: 전체 차량 수 (CLI에서 지정된 --normal + --ev 값)
             normal_count: 일반 차량 수
             ev_count: EV 차량 수
+            ratio_min: 입차 비율의 최소값
+            ratio_max: 입차 비율의 최대값
         """
         self.env = env
         self.parking_manager = parking_manager
@@ -39,6 +44,8 @@ class ParkingSimulation:
         self.total_vehicle_count = total_vehicle_count
         self.normal_count = normal_count
         self.ev_count = ev_count
+        self.ratio_min = ratio_min
+        self.ratio_max = ratio_max
         
         # parking_manager에 env 설정
         self.parking_manager.set_env(env)
@@ -58,7 +65,7 @@ class ParkingSimulation:
         }
         
         # 하루 단위 입차 계획
-        self.daily_entry_plan: List[Tuple[float, Vehicle]] = []
+        self.daily_entry_plan: List[float] = []
 
     def log_event(self, vehicle: Vehicle, event: str) -> None:
         """이벤트 로깅"""
@@ -142,59 +149,31 @@ class ParkingSimulation:
     def plan_daily_entries(self, current_time: float) -> None:
         """
         하루 단위 입차 계획을 수립합니다.
-        
         Args:
             current_time: 현재 시뮬레이션 시간
         """
         from src.config import normalized_entry_ratios
-        
         # 하루의 시작 시간 계산 (현재 시간의 0시)
         day_start = current_time - (current_time % 86400)
-        
-        # --- 전체 차량 pool에서 EV/normal 분리 ---
-        all_vehicles = list(self.active_vehicles.values()) + list(self.outside_vehicles.values())
-        ev_vehicles = [v for v in all_vehicles if v.vehicle_type == "ev"]
-        normal_vehicles = [v for v in all_vehicles if v.vehicle_type != "ev"]
-
-        # 이미 주차 중인 차량은 제외 (active_vehicles에 있는 차량은 제외)
-        ev_candidates = [v for v in ev_vehicles if v.vehicle_id not in self.active_vehicles]
-        normal_candidates = [v for v in normal_vehicles if v.vehicle_id not in self.active_vehicles]
-
-        # 매일 120% 입차 (EV/normal 각각)
-        ev_entries = int(len(ev_candidates) * 1.5)
-        normal_entries = int(len(normal_candidates) * 1.5)
-
-        # 랜덤 샘플링 (중복 허용)
-        ev_today = random.choices(ev_candidates, k=ev_entries)
-        normal_today = random.choices(normal_candidates, k=normal_entries)
-        today_vehicles = ev_today + normal_today
-        random.shuffle(today_vehicles)
-
-        # 시간대별 입차량 계산 (전체 입차 차량 수 기준)
-        total_entries = len(today_vehicles)
+        # 입차할 총 차량 수 계산 (outside_vehicles 기준)
+        total_vehicles = len(self.outside_vehicles)
+        # 시간대별 입차 비율로 입차 시간만 생성
         hourly_entries = []
         for ratio in normalized_entry_ratios:
-            # ±10% 노이즈 추가
-            noise = np.random.uniform(0.9, 1.1)
-            entries = int(total_entries * ratio * noise)
+            noise = np.random.uniform(self.ratio_min, self.ratio_max)
+            entries = int(total_vehicles * ratio * noise)
             hourly_entries.append(entries)
-        
-        # 각 시간대별로 차량 입차 시간 샘플링
+        # 각 시간대별로 입차 시간 샘플링
         self.daily_entry_plan.clear()
-        idx = 0
         for hour, entries in enumerate(hourly_entries):
             if entries > 0:
                 hour_start = day_start + (hour * 3600)
                 entry_times = np.random.uniform(hour_start, hour_start + 3600, entries)
                 for entry_time in sorted(entry_times):
-                    if idx < len(today_vehicles):
-                        vehicle = today_vehicles[idx]
-                        # outside_vehicles에서 제거 (입차 대기열에서만 제거)
-                        if vehicle.vehicle_id in self.outside_vehicles:
-                            self.outside_vehicles.pop(vehicle.vehicle_id)
-                        self.daily_entry_plan.append((entry_time, vehicle))
-                        idx += 1
-    
+                    self.daily_entry_plan.append(entry_time)
+        # 입차 시간 정렬
+        self.daily_entry_plan.sort()
+
     def daily_planning_process(self):
         """매일 0시마다 새로운 입차 계획을 수립하는 프로세스"""
         while True:
@@ -206,20 +185,22 @@ class ParkingSimulation:
             self.plan_daily_entries(self.env.now)
     
     def vehicle_entry_process(self):
-        """입차 계획에 따라 차량을 입차시키는 프로세스"""
+        """
+        입차 계획에 따라 차량을 입차시키는 프로세스
+        """
         while True:
             if self.daily_entry_plan:
-                # 가장 빠른 입차 예정 차량 확인
-                next_entry_time, vehicle = self.daily_entry_plan[0]
-                
+                # 가장 빠른 입차 예정 시간 확인
+                next_entry_time = self.daily_entry_plan[0]
                 # 입차 시간까지 대기
                 if next_entry_time > self.env.now:
                     yield self.env.timeout(next_entry_time - self.env.now)
-                
-                # 입차 처리
-                self.handle_vehicle_entry(vehicle)
-                
-                # 처리된 차량 제거
+                # 입차 대상 차량을 outside_vehicles에서 랜덤하게 뽑음
+                if self.outside_vehicles:
+                    vehicle_id, vehicle = random.choice(list(self.outside_vehicles.items()))
+                    self.outside_vehicles.pop(vehicle_id)
+                    self.handle_vehicle_entry(vehicle)
+                # 처리된 입차 시간 제거
                 self.daily_entry_plan.pop(0)
             else:
                 # 다음 계획이 수립될 때까지 1분 대기
@@ -359,6 +340,26 @@ class ParkingSimulation:
         charge_success = len(charge_starts)  # 충전 시작된 횟수
         charge_fail = len(charge_fails)  # 충전 실패 횟수
         
+        # distance_log.csv에서 평균 이동 거리 계산
+        avg_normal_dist = avg_ev_dist = "N/A"
+        distance_path = os.path.join(output_dir, "distance_log.csv")
+        try:
+            normal_dists = []
+            ev_dists = []
+            with open(distance_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row["type"] == "normal":
+                        normal_dists.append(float(row["distance"]))
+                    elif row["type"] == "ev":
+                        ev_dists.append(float(row["distance"]))
+            if normal_dists:
+                avg_normal_dist = f"{sum(normal_dists)/len(normal_dists):.1f}"
+            if ev_dists:
+                avg_ev_dist = f"{sum(ev_dists)/len(ev_dists):.1f}"
+        except Exception:
+            pass
+        
         # 결과 문자열 생성
         result_str = f"""
 === 시뮬레이션 결과 ===
@@ -389,6 +390,12 @@ class ParkingSimulation:
 - EV 충전 시도: {charge_try}회
   - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)
   - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)
+
+[지표]
+- 충전소 개수 : {stats['total_charger_spots']}개
+- 충전 실패율 : {(charge_fail/charge_try*100) if charge_try else 0:.1f} %
+- 평균 distance (일반 차량) : {avg_normal_dist}
+- 평균 distance (EV) : {avg_ev_dist}
 """
         
         # 결과 출력
@@ -486,6 +493,26 @@ class ParkingSimulation:
         charge_success = len(charge_starts)  # 충전 시작된 횟수
         charge_fail = len(charge_fails)  # 충전 실패 횟수
         
+        # distance_log.csv에서 평균 이동 거리 계산
+        avg_normal_dist = avg_ev_dist = "N/A"
+        distance_path = os.path.join(output_dir, "distance_log.csv")
+        try:
+            normal_dists = []
+            ev_dists = []
+            with open(distance_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row["type"] == "normal":
+                        normal_dists.append(float(row["distance"]))
+                    elif row["type"] == "ev":
+                        ev_dists.append(float(row["distance"]))
+            if normal_dists:
+                avg_normal_dist = f"{sum(normal_dists)/len(normal_dists):.1f}"
+            if ev_dists:
+                avg_ev_dist = f"{sum(ev_dists)/len(ev_dists):.1f}"
+        except Exception:
+            pass
+        
         # 결과 문자열 생성
         result_str = f"""
 === 시뮬레이션 결과 ===
@@ -516,6 +543,12 @@ class ParkingSimulation:
 - EV 충전 시도: {charge_try}회
   - 충전 성공: {charge_success}회 (성공률: {(charge_success/charge_try*100) if charge_try else 0:.1f}%)
   - 충전 실패: {charge_fail}회 (실패율: {(charge_fail/charge_try*100) if charge_try else 0:.1f}%)
+
+[지표]
+- 충전소 개수 : {stats['total_charger_spots']}개
+- 충전 실패율 : {(charge_fail/charge_try*100) if charge_try else 0:.1f} %
+- 평균 distance (일반 차량) : {avg_normal_dist}
+- 평균 distance (EV) : {avg_ev_dist}
 """
         
         # 결과 출력
