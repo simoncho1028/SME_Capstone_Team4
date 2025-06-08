@@ -21,6 +21,7 @@ import simpy
 import json
 from collections import defaultdict
 from src.utils.helpers import sample_battery_level
+import numpy as np
 
 # 한글 폰트 설정
 if platform.system() == 'Windows':
@@ -35,8 +36,10 @@ mpl.rcParams['axes.unicode_minus'] = False   # 마이너스 기호 깨짐 방지
 from src.config import (
     SEED, SIM_TIME, PARKING_MAPS,
     generate_adjacent_charger_layouts,
-    ENTRY_RATIO, get_arrival_time,
-    CELL_PARK, CELL_CHARGER
+    get_arrival_time,
+    CELL_PARK, CELL_CHARGER,
+    ENTRY_RATIO_MEAN, ENTRY_RATIO_STD, ENTRY_RATIO_MIN, ENTRY_RATIO_MAX,
+    NUM_NORMAL, NUM_EV
 )
 from src.simulation.parking_simulation import ParkingSimulation
 from src.models.parking_manager import ParkingManager
@@ -85,7 +88,10 @@ def create_vehicles(env: simpy.Environment, vehicle_data: Dict) -> List[Vehicle]
     return vehicles
 
 def parse_args():
+    """명령행 인자를 파싱합니다."""
     parser = argparse.ArgumentParser(description='주차장 시뮬레이션')
+    
+    # 기존 인자들
     parser.add_argument("--no-save-csv", action="store_true", help="CSV 저장 안 함")
     parser.add_argument("--visualize-layout", action="store_true", help="주차장 레이아웃 시각화")
     parser.add_argument("--animation", action="store_true", help="주차장 상태 애니메이션 실행")
@@ -93,12 +99,27 @@ def parse_args():
     parser.add_argument("--animation-speed", type=float, default=0.1, help="애니메이션 속도 (초)")
     parser.add_argument("--layout", type=str, default='config/layout.json', help='레이아웃 파일 경로')
     parser.add_argument("--log", type=str, help='시뮬레이션 로그 파일 경로')
-    parser.add_argument("--time", type=int, default=86400, help="시뮬레이션 시간 (초, 기본값: 24시간)")
-    parser.add_argument("--normal", type=int, default=830, help="일반 차량 수 (기본값: 830)")
-    parser.add_argument("--ev", type=int, default=36, help="전기차 수 (기본값: 36)")
+    parser.add_argument("--time", type=int, default=SIM_TIME,
+                      help='시뮬레이션 시간 (초)')
+    parser.add_argument("--normal", type=int, default=NUM_NORMAL,
+                      help='일반 차량 수')
+    parser.add_argument("--ev", type=int, default=NUM_EV,
+                      help='전기차 수')
     parser.add_argument("--parking-capacity", type=int, default=866, help="전체 주차면 수 (기본값: 866)")
-    parser.add_argument("--seed", type=int, default=42, help="랜덤 시드 (기본값: 42)")
+    parser.add_argument("--seed", type=int, default=SEED,
+                      help='난수 생성기 시드')
     parser.add_argument('--charger', type=int, default=36, help='충전소 개수 (기본값: 36)')
+    
+    # 입차 비율 관련 인자 추가
+    parser.add_argument('--entry-mean', type=float, default=ENTRY_RATIO_MEAN,
+                      help='입차 비율 평균 (기본값: 1.0)')
+    parser.add_argument('--entry-std', type=float, default=ENTRY_RATIO_STD,
+                      help='입차 비율 표준편차 (기본값: 0.033)')
+    parser.add_argument('--entry-min', type=float, default=ENTRY_RATIO_MIN,
+                      help='최소 입차 비율 (기본값: 0.9)')
+    parser.add_argument('--entry-max', type=float, default=ENTRY_RATIO_MAX,
+                      help='최대 입차 비율 (기본값: 1.1)')
+    
     return parser.parse_args()
 
 
@@ -259,10 +280,12 @@ def main():
     """
     메인 실행 함수
     """
+    # 명령행 인자 파싱
     args = parse_args()
     
     # 시드 설정
     random.seed(args.seed)
+    np.random.seed(args.seed)
     
     # 결과 저장 디렉토리 설정
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -331,7 +354,8 @@ def main():
         logger=logger,
         total_vehicle_count=total_vehicles,
         normal_count=args.normal,
-        ev_count=args.ev
+        ev_count=args.ev,
+        results_dir=results_dir
     )
     
     # 차량 데이터 로드 및 차량 생성

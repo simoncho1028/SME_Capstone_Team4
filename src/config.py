@@ -12,7 +12,12 @@ SIM_TIME = 86_400          # 24시간 (초 단위)
 NUM_NORMAL = 830           # 일반 차량 수
 NUM_EV = 36               # 전기차 수
 TOTAL_VEHICLES = NUM_NORMAL + NUM_EV  # 총 차량 수
-ENTRY_RATIO = 0.9         # 전체 차량 중 입차하는 비율
+
+# 입차 비율 설정
+ENTRY_RATIO_MEAN = 0.9     # 입차 비율 평균
+ENTRY_RATIO_STD = 0.033    # 입차 비율 표준편차
+ENTRY_RATIO_MIN = 0.8   # 최소 입차 비율
+ENTRY_RATIO_MAX = 1.0    # 최대 입차 비율
 
 # 시간대별 입차 비율 (24시간)
 normalized_entry_ratios = [
